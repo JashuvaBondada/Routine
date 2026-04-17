@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fitness Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f0f;--surface:#151918;--card:#1a1f1e;--border:#252e2b;--border2:#2f3b37;--accent:#c8f542;--accent2:#ff6b35;--accent3:#38d9c0;--red:#ff4757;--text:#e8ede8;--muted:#6b7a70;--muted2:#4a5850}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding-bottom:90px}
+.shell{max-width:500px;margin:0 auto}
+
+/* HEADER */
+.hdr{padding:20px 20px 12px;position:sticky;top:0;background:var(--bg);z-index:20;border-bottom:1px solid var(--border)}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--accent)}
+.today-chip{font-family:'Space Mono',monospace;font-size:10px;background:var(--card);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:20px}
+.date-nav{display:flex;align-items:center;gap:8px}
+.nav-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.nav-btn:hover{border-color:var(--border2);color:var(--text)}
+.date-lbl{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;min-width:88px;text-align:center;color:var(--text)}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:89px;z-index:19}
+.tab{flex:1;padding:11px 2px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-1px}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* CONTENT */
+.content{padding:16px 20px}
+
+/* DAY PICKER */
+.day-picker{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.day-btn{flex-shrink:0;padding:7px 12px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;transition:.15s;text-align:center;min-width:62px}
+.day-btn .dnum{font-size:16px;font-weight:700;display:block;color:var(--text);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
+.day-btn.on{border-color:var(--accent);background:rgba(200,245,66,.06)}
+.day-btn.on .dnum{color:var(--accent)}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;text-align:center}
+.sv{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;color:var(--text)}
+.sv.g{color:var(--accent)}.sv.o{color:var(--accent2)}.sv.t{color:var(--accent3)}
+.sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+
+/* MUSCLE GROUP */
+.group-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;padding:10px 0 7px;display:flex;align-items:center;gap:8px}
+.group-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* EXERCISE CARD */
+.ex-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:7px;overflow:hidden;transition:border-color .2s}
+.ex-card.done-card{border-color:rgba(200,245,66,.3);background:rgba(200,245,66,.03)}
+.ex-row{display:flex;align-items:center;gap:11px;padding:13px 14px}
+.cbox{width:22px;height:22px;border:1.5px solid var(--border2);border-radius:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s;background:var(--bg)}
+.cbox.done{background:var(--accent);border-color:var(--accent)}
+.cbox.done::after{content:'';width:5px;height:9px;border:2px solid #0d0f0f;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px)}
+.ex-info{flex:1;min-width:0}
+.ex-name{font-size:14px;font-weight:600;color:var(--text);transition:.15s}
+.ex-name.done{text-decoration:line-through;color:var(--muted)}
+.ex-sets{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px}
+.ex-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.kcal-chip{font-family:'Space Mono',monospace;font-size:9px;padding:2px 7px;border-radius:5px;font-weight:700}
+.demo-btn{font-family:'DM Sans',sans-serif;font-size:10px;padding:3px 8px;border-radius:6px;background:var(--surface);border:1px solid var(--border2);color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap}
+.demo-btn:hover{border-color:var(--accent3);color:var(--accent3)}
+
+/* REST TIMER */
+.rest-bar{padding:0 14px 12px;display:none}
+.rest-bar.show{display:block}
+.rest-inner{background:rgba(200,245,66,.07);border:1px solid rgba(200,245,66,.2);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:12px}
+.rest-time{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);min-width:52px}
+.rest-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.rest-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 1s linear}
+.rest-label{font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'Space Mono',monospace}
+.skip-btn{font-size:11px;padding:4px 10px;background:none;border:1px solid var(--border2);color:var(--muted);border-radius:6px;cursor:pointer;transition:.15s}
+.skip-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* MEAL CARDS */
+.meal-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:16px;margin-bottom:8px;position:relative;overflow:hidden;transition:border-color .2s}
+.meal-card.done-card{border-color:rgba(200,245,66,.3)}
+.meal-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.meal-stripe-1::before{background:#c8f542}.meal-stripe-2::before{background:#ff6b35}.meal-stripe-3::before{background:#38d9c0}.meal-stripe-4::before{background:#ff9f43}.meal-stripe-5::before{background:#ee5a24}.meal-stripe-6::before{background:#a29bfe}
+.meal-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.meal-check{flex-shrink:0;margin-top:2px}
+.meal-info{flex:1}
+.meal-time{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.meal-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px}
+.meal-kcal-col{text-align:right;flex-shrink:0}
+.meal-kcal-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text)}
+.meal-kcal-lbl{font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase}
+.meal-foods{list-style:none;margin-bottom:10px;padding-left:0}
+.meal-foods li{font-size:12px;color:#9aaa9a;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:6px}
+.meal-foods li::before{content:'—';color:var(--muted2);font-size:9px;flex-shrink:0}
+.meal-foods li:last-child{border-bottom:none}
+.macro-pills{display:flex;gap:5px;flex-wrap:wrap}
+.mpill{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-family:'Space Mono',monospace;font-size:10px;color:var(--muted)}
+.mpill strong{color:var(--text)}
+
+/* MACRO PROGRESS */
+.macro-prog{margin-bottom:9px}
+.mp-head{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.mp-head span:first-child{color:var(--muted)}.mp-head span:last-child{font-family:'Space Mono',monospace;color:var(--text)}
+.mp-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.mp-fill{height:100%;border-radius:2px;transition:width .4s ease}
+
+/* SUMMARY */
+.sum-block{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:16px;margin-bottom:10px}
+.sum-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.big-n{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px}
+.big-n.g{color:var(--accent)}.big-n.r{color:var(--red)}
+.big-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.proj-row{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.proj{flex:1}.proj-l{font-size:10px;color:var(--muted);margin-bottom:2px}.proj-v{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--accent)}
+
+/* HISTORY */
+.hist-day{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.hist-day:hover{border-color:var(--border2)}
+.hist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.hist-date{font-family:'Space Mono',monospace;font-size:12px;font-weight:700}
+.hist-pills{display:flex;gap:5px}
+.hist-stats{display:flex;gap:14px;flex-wrap:wrap}
+.hs{font-size:11px;color:var(--muted)}.hs span{font-family:'Space Mono',monospace;color:var(--text);font-weight:700}
+
+/* SETTINGS */
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.set-row:last-child{border-bottom:none}
+.set-lbl{font-size:13px;color:var(--muted)}
+.set-inp{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:6px 10px;width:90px;text-align:right;outline:none}
+.set-inp:focus{border-color:var(--accent)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:400px;overflow:hidden}
+.modal-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:4px}
+.modal-anim{height:100px;display:flex;align-items:center;justify-content:center;background:var(--surface);position:relative;overflow:hidden}
+.modal-body{padding:16px 18px}
+.steps-list{list-style:none}
+.steps-list li{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:#9aaa9a}
+.steps-list li:last-child{border-bottom:none}
+.step-n{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);min-width:20px;line-height:1.2}
+.muscle-tag{font-family:'Space Mono',monospace;font-size:9px;padding:3px 8px;border-radius:4px;background:rgba(200,245,66,.1);color:var(--accent);margin-right:6px;border:1px solid rgba(200,245,66,.2)}
+
+/* ANIMATIONS */
+@keyframes push-anim{0%,100%{transform:translateY(8px)}50%{transform:translateY(-8px)}}
+@keyframes pull-anim{0%,100%{transform:translateY(-8px)}50%{transform:translateY(8px)}}
+@keyframes squat-anim{0%,100%{transform:translateY(-10px) scaleY(.85)}50%{transform:translateY(5px) scaleY(1)}}
+@keyframes curl-anim{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-65deg)}}
+@keyframes core-anim{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.92) translateY(4px)}}
+@keyframes cardio-anim{0%,100%{transform:translateX(-12px)}50%{transform:translateX(12px)}}
+@keyframes pulse-ring{0%{transform:scale(.9);opacity:.8}100%{transform:scale(1.15);opacity:0}}
+
+.anim-push{animation:push-anim 1.2s ease-in-out infinite}
+.anim-pull{animation:pull-anim 1.2s ease-in-out infinite}
+.anim-legs{animation:squat-anim 1.4s ease-in-out infinite;transform-origin:bottom center}
+.anim-curl{animation:curl-anim 1.2s ease-in-out infinite;transform-origin:bottom center}
+.anim-core{animation:core-anim 1.5s ease-in-out infinite}
+.anim-cardio{animation:cardio-anim .6s ease-in-out infinite}
+.anim-shoulders{animation:push-anim 1.2s ease-in-out infinite}
+.pulse-dot{position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(200,245,66,.15);animation:pulse-ring 1.2s ease-out infinite}
+
+/* SAVE PILL */
+.save-pill{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0d0f0f;font-size:11px;font-weight:700;padding:6px 18px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;font-family:'Space Mono',monospace;letter-spacing:1px}
+.save-pill.show{opacity:1}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--muted2);font-size:13px}
+.e-icon{font-size:30px;margin-bottom:10px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">💪 FitTrack</div>
+      <div class="today-chip" id="today-chip"></div>
+    </div>
+    <div class="date-nav">
+      <button class="nav-btn" onclick="shiftDay(-1)">‹</button>
+      <div class="date-lbl" id="date-lbl"></div>
+      <button class="nav-btn" onclick="shiftDay(1)">›</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="setTab('workout',this)">Workout</button>
+    <button class="tab" onclick="setTab('diet',this)">Diet</button>
+    <button class="tab" onclick="setTab('summary',this)">Summary</button>
+    <button class="tab" onclick="setTab('history',this)">History</button>
+    <button class="tab" onclick="setTab('settings',this)">Settings</button>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div id="modal-title" class="modal-title"></div>
+        <div id="modal-tags" style="margin-top:4px"></div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-anim" id="modal-anim">
+      <div class="pulse-dot"></div>
+    </div>
+    <div class="modal-body">
+      <ul class="steps-list" id="modal-steps"></ul>
+    </div>
+  </div>
+</div>
+<div class="save-pill" id="save-pill">SAVED ✓</div>
+
+<script>
+/* ─── WORKOUT DATA ─────────────────────────────────────────── */
+const WP = [
+  {day:1,name:'Chest + Triceps + Shoulders',emoji:'🔥',groups:[
+    {muscle:'CHEST',color:'#c8f542',exercises:[
+      {id:'d1e1',name:'Bench Press',sets:'4×8 reps',kcal:55,cat:'push',steps:['Lie flat on bench, feet firmly on floor','Grip bar just wider than shoulder width','Lower bar to mid-chest with full control, 2-3 sec','Drive up explosively, fully extending arms']},
+      {id:'d1e2',name:'Incline Dumbbell Press',sets:'3×10 reps',kcal:40,cat:'push',steps:['Set bench to 30–45°, sit with dumbbells on thighs','Kick weights up as you lie back','Press up and inward until dumbbells nearly touch','Lower slowly to chest level, feel the stretch']},
+      {id:'d1e3',name:'Chest Fly',sets:'3×12 reps',kcal:30,cat:'push',steps:['Lie flat, dumbbells above chest, slight bend in elbows','Open arms wide in a wide arc — like hugging a tree','Feel the deep pec stretch at the bottom position','Squeeze pecs to bring weights back to the top']},
+    ]},
+    {muscle:'TRICEPS',color:'#ff6b35',exercises:[
+      {id:'d1e4',name:'Pushdown',sets:'3×12 reps',kcal:25,cat:'push',steps:['Stand at cable machine with rope or bar attachment','Keep elbows pinned tight to your sides throughout','Push handle down until arms fully extended','Slowly return — don\'t let elbows flare out']},
+      {id:'d1e5',name:'Overhead Extension',sets:'3×12 reps',kcal:25,cat:'push',steps:['Hold one dumbbell overhead with both hands','Keep upper arms close to your head, pointing up','Lower weight behind head slowly — deep stretch','Extend arms back up, squeeze triceps hard at top']},
+      {id:'d1e6',name:'Dips',sets:'3 sets to failure',kcal:35,cat:'push',steps:['Grip parallel bars, start with arms fully extended','Lean slightly forward for chest emphasis','Lower body until upper arms are parallel to floor','Push up to start — avoid full lockout at top']},
+    ]},
+    {muscle:'SHOULDERS',color:'#38d9c0',exercises:[
+      {id:'d1e7',name:'Shoulder Press',sets:'3×10 reps',kcal:40,cat:'shoulders',steps:['Sit or stand with dumbbells at shoulder height','Brace your core and avoid arching lower back','Press directly overhead until arms fully extended','Lower with control back to shoulder height']},
+      {id:'d1e8',name:'Lateral Raises',sets:'3×12 reps',kcal:20,cat:'shoulders',steps:['Stand with dumbbells at sides, slight forward lean','Raise arms straight out to sides with soft elbows','Stop at shoulder height — no higher','Lower super slowly, 3–4 sec on the way down']},
+      {id:'d1e9',name:'Rear Delt Fly',sets:'3×12 reps',kcal:20,cat:'pull',steps:['Hinge forward at hips, back flat, dumbbells hanging','With slight elbow bend, raise arms out to sides','Squeeze rear delts at the top — really feel it','Lower in a controlled arc back to start']},
+    ]},
+  ]},
+  {day:2,name:'Back + Biceps + Core',emoji:'💪',groups:[
+    {muscle:'BACK',color:'#c8f542',exercises:[
+      {id:'d2e1',name:'Lat Pulldown',sets:'4×10 reps',kcal:50,cat:'pull',steps:['Sit at pulldown machine, thighs secured under pad','Grip bar wider than shoulder width, overhand grip','Pull bar to upper chest while driving elbows down','Slowly return to full arm extension — feel the stretch']},
+      {id:'d2e2',name:'Seated Row',sets:'3×10 reps',kcal:40,cat:'pull',steps:['Sit at cable row machine, feet on platform','Pull handle to lower abdomen, keeping back upright','Squeeze shoulder blades together at the end','Extend arms fully back — get full stretch in lats']},
+      {id:'d2e3',name:'DB Row',sets:'3×10 reps',kcal:40,cat:'pull',steps:['Place one knee and hand on bench for support','Pick up dumbbell with free hand, arm extended','Row the weight up to your hip — elbow passes torso','Lower with full control, feel the lat stretch']},
+    ]},
+    {muscle:'BICEPS',color:'#ff6b35',exercises:[
+      {id:'d2e4',name:'Barbell Curl',sets:'3×10 reps',kcal:25,cat:'curl',steps:['Stand with barbell, shoulder-width underhand grip','Keep elbows pinned to sides — don\'t swing body','Curl bar up to shoulders in a smooth arc','Lower slowly — the down phase builds more muscle']},
+      {id:'d2e5',name:'Hammer Curl',sets:'3×10 reps',kcal:25,cat:'curl',steps:['Hold dumbbells with neutral grip (palms facing each other)','Keep elbows fixed, curl both arms simultaneously','Hold at the top for a 1-sec squeeze','Lower under full control — 3 sec down']},
+      {id:'d2e6',name:'Preacher Curl',sets:'3×12 reps',kcal:20,cat:'curl',steps:['Sit at preacher bench, upper arm flat on pad','Use underhand grip, start with arms extended','Curl upward focusing on the peak contraction','Lower slowly — the stretch at bottom is important']},
+    ]},
+    {muscle:'CORE',color:'#38d9c0',exercises:[
+      {id:'d2e7',name:'Leg Raises',sets:'3×12 reps',kcal:20,cat:'core',steps:['Lie flat on bench or floor, hands under lower back','Keep legs straight, raise them to 90° slowly','Lower back down — stop just before heels touch floor','Control every inch, never use momentum']},
+      {id:'d2e8',name:'Plank',sets:'3×45 seconds',kcal:15,cat:'core',steps:['Set up on forearms and toes, body in straight line','Brace abs like you\'re about to get punched','Keep hips level — no sagging or raising them','Breathe steadily, squeeze glutes throughout']},
+      {id:'d2e9',name:'Crunches',sets:'3×15 reps',kcal:15,cat:'core',steps:['Lie on back, knees bent, hands behind head lightly','Lift shoulders off floor by contracting abs — NOT neck','Curl up until lower back lifts slightly off floor','Lower slowly and repeat — short range, high tension']},
+    ]},
+  ]},
+  {day:3,name:'Legs + Calves + Core',emoji:'🦵',groups:[
+    {muscle:'LEGS',color:'#c8f542',exercises:[
+      {id:'d3e1',name:'Leg Press',sets:'4×10 reps',kcal:65,cat:'legs',steps:['Sit in leg press, feet shoulder-width on platform','Lower platform until knees are at 90° or below','Press through heels — don\'t lock knees at top','Control the weight on the way down every rep']},
+      {id:'d3e2',name:'Squats',sets:'3×10 reps',kcal:60,cat:'legs',steps:['Bar on upper traps, feet slightly wider than shoulder-width','Take a deep breath, brace core and descend','Lower until thighs are parallel to floor or below','Drive up through heels, keeping chest upright']},
+      {id:'d3e3',name:'Leg Curl',sets:'3×12 reps',kcal:30,cat:'legs',steps:['Lie face-down on leg curl machine','Curl weight toward glutes in a smooth arc','Squeeze hamstrings at the top for 1 second','Lower with full control — don\'t let it drop']},
+    ]},
+    {muscle:'CALVES',color:'#ff6b35',exercises:[
+      {id:'d3e4',name:'Standing Calf Raises',sets:'4×15 reps',kcal:25,cat:'legs',steps:['Stand on edge of step, heels hanging off','Lower heels below the step for a deep stretch','Rise up onto toes as high as possible','Hold 1 sec at the top — calves respond to squeeze']},
+      {id:'d3e5',name:'Seated Calf Raises',sets:'3×15 reps',kcal:20,cat:'legs',steps:['Sit at seated calf machine, pads on knees','Start with heels dropped below platform level','Press up onto toes through full range of motion','Slow 3-second negative on the way down']},
+      {id:'d3e6',name:'Single-Leg Raises',sets:'3×12 reps',kcal:18,cat:'legs',steps:['Stand on one leg on edge of step or floor','Keep the non-working leg slightly behind','Full range of motion — deep stretch at bottom','Complete all reps one side, then switch']},
+    ]},
+    {muscle:'CORE',color:'#38d9c0',exercises:[
+      {id:'d3e7',name:'Hanging Raises',sets:'3×12 reps',kcal:22,cat:'core',steps:['Hang from pull-up bar with a firm overhand grip','Bring knees up to chest with control','For harder version: raise straight legs to parallel','Lower slowly — avoid swinging your body']},
+      {id:'d3e8',name:'Russian Twists',sets:'3×20 reps',kcal:20,cat:'core',steps:['Sit on floor, lean back 45°, feet lifted or on floor','Hold weight or clasp hands together','Rotate torso side to side, touch floor each side','Keep the movement slow and controlled']},
+      {id:'d3e9',name:'Plank',sets:'3×45 seconds',kcal:15,cat:'core',steps:['Forearms and toes on floor, body straight','Brace every muscle: abs, glutes, quads','Don\'t let hips sag or pike upward','Breathe steadily, hold for the full time']},
+    ]},
+  ]},
+  {day:4,name:'Chest + Back + Shoulders',emoji:'⚡',groups:[
+    {muscle:'CHEST',color:'#c8f542',exercises:[
+      {id:'d4e1',name:'Incline Press',sets:'3×10 reps',kcal:45,cat:'push',steps:['Set bench to 30–45°, barbell or dumbbells','Lower weight to upper chest with elbows at 45°','Press up focusing on upper pec contraction','Don\'t lock out fully — keep tension on muscle']},
+      {id:'d4e2',name:'Machine Press',sets:'3×10 reps',kcal:40,cat:'push',steps:['Adjust seat so handles are at mid-chest level','Grip handles, elbows slightly below shoulder height','Press forward until arms nearly extended','Return slowly to start — machine guides the path']},
+      {id:'d4e3',name:'Cable Fly',sets:'3×12 reps',kcal:30,cat:'push',steps:['Set cables to mid-height, stand in the middle','Arms out to sides, slight bend in elbows','Bring hands together in front — squeeze pecs hard','Slowly open arms back out for the full stretch']},
+    ]},
+    {muscle:'BACK',color:'#ff6b35',exercises:[
+      {id:'d4e4',name:'Pull-Ups / Assisted',sets:'3 sets',kcal:40,cat:'pull',steps:['Hang from bar with overhand grip, wider than shoulder','Initiate by pulling shoulder blades down and together','Pull until chin clears bar — drive elbows to hips','Lower slowly to full hang before next rep']},
+      {id:'d4e5',name:'Row Machine',sets:'3×10 reps',kcal:40,cat:'pull',steps:['Adjust chest pad, grip handles with neutral or overhand','Retract shoulder blades as you pull handles back','Drive elbows back past torso — full range','Extend arms fully to get a complete lat stretch']},
+      {id:'d4e6',name:'Straight Arm Pulldown',sets:'3×12 reps',kcal:30,cat:'pull',steps:['Stand at cable with straight bar at top attachment','Hinge slightly forward, start with arms extended overhead','Keep arms straight and pull bar down to hips','Reverse slowly — feel the lat stretch as arms rise']},
+    ]},
+    {muscle:'SHOULDERS',color:'#38d9c0',exercises:[
+      {id:'d4e7',name:'Arnold Press',sets:'3×10 reps',kcal:40,cat:'shoulders',steps:['Start with dumbbells at chin level, palms facing you','As you press up, rotate palms to face forward','Finish with arms overhead, palms now facing away','Reverse the rotation on the way back down']},
+      {id:'d4e8',name:'Lateral Raises',sets:'3×12 reps',kcal:20,cat:'shoulders',steps:['Stand with dumbbells at sides, slight bend in arms','Lead with elbows, raise arms to shoulder height','Brief pause at top — don\'t shrug the traps','Lower in 3–4 seconds, all the way down']},
+      {id:'d4e9',name:'Face Pulls',sets:'3×12 reps',kcal:20,cat:'pull',steps:['Set cable at face height with rope attachment','Grip rope with both hands, step back for tension','Pull rope toward your face, elbows flaring out high','Externally rotate at the end — hold 1 sec, return']},
+    ]},
+  ]},
+  {day:5,name:'Arms + Core + Cardio',emoji:'⚡',groups:[
+    {muscle:'BICEPS',color:'#c8f542',exercises:[
+      {id:'d5e1',name:'EZ Curl',sets:'3×10 reps',kcal:25,cat:'curl',steps:['Grip EZ bar on angled sections, underhand grip','Keep elbows stationary at your sides throughout','Curl up smoothly to the top, squeeze at peak','Lower for 3 slow seconds — eccentric builds muscle']},
+      {id:'d5e2',name:'Incline Curl',sets:'3×10 reps',kcal:22,cat:'curl',steps:['Sit on inclined bench (45–60°), arms hanging down','The incline gives you a stronger stretch at bottom','Curl up one or both arms, focusing on the squeeze','Let arms fully extend at bottom for full stretch']},
+      {id:'d5e3',name:'Concentration Curl',sets:'3×12 reps',kcal:20,cat:'curl',steps:['Sit on bench, elbow on inner thigh for support','Hold dumbbell, arm fully extended to start','Curl up focusing on peak contraction at top','Lower completely before starting next rep']},
+    ]},
+    {muscle:'TRICEPS',color:'#ff6b35',exercises:[
+      {id:'d5e4',name:'Pushdown',sets:'3×12 reps',kcal:25,cat:'push',steps:['Use rope or V-bar attachment on cable machine','Elbows tight to body — they don\'t move','Push all the way down to full extension','Spread rope apart at bottom for extra squeeze']},
+      {id:'d5e5',name:'Skull Crushers',sets:'3×10 reps',kcal:28,cat:'push',steps:['Lie on bench, barbell or EZ bar above chest','Lower bar toward forehead by bending elbows only','Upper arms stay vertical throughout the movement','Extend arms back to start — keep elbows in']},
+      {id:'d5e6',name:'Bench Dips',sets:'3 sets to failure',kcal:30,cat:'push',steps:['Hands on bench behind you, legs extended forward','Lower body by bending elbows to 90°','Keep back close to the bench throughout','Push back up to start — don\'t use leg momentum']},
+    ]},
+    {muscle:'CORE + CARDIO',color:'#38d9c0',exercises:[
+      {id:'d5e7',name:'Plank',sets:'3×1 minute',kcal:22,cat:'core',steps:['Forearms and toes on floor, body straight as a plank','Abs braced, glutes squeezed, no hip sag or pike','Hold for the full minute with controlled breathing','If failing, drop to knees and keep form perfect']},
+      {id:'d5e8',name:'Leg Raises',sets:'3×15 reps',kcal:22,cat:'core',steps:['Lie on floor or hang from bar','Raise legs to 90° or higher in a controlled motion','Pause at the top — really squeeze the lower abs','Lower slowly — don\'t let legs crash to the floor']},
+      {id:'d5e9',name:'Cardio',sets:'20–30 minutes',kcal:230,cat:'cardio',steps:['Choose treadmill, bike, skipping rope or outdoor run','Keep heart rate at 130–150 BPM for fat burning','Steady pace — you should be able to hold a conversation','Finish with 3 min cool-down walk, light stretching']},
+    ]},
+  ]},
+];
+
+/* ─── MEAL DATA ─────────────────────────────────────────────── */
+const MEALS = [
+  {id:'m1',time:'5:00 AM',name:'Pre-Workout',kcal:90,protein:2,carbs:23,fat:0,stripe:1,
+   foods:['1 Small Banana','Cold Black Coffee']},
+  {id:'m2',time:'6:30 AM',name:'Breakfast',kcal:365,protein:35,carbs:35,fat:6,stripe:2,
+   foods:['40g Oats + 1 Scoop Whey','100g Guava','5g Chia Seeds']},
+  {id:'m3',time:'1:00 PM',name:'Lunch',kcal:450,protein:60,carbs:32,fat:9,stripe:3,
+   foods:['220g Chicken Breast','100g Cooked Rice','100g Beans & 50g Carrot','5g Sesame Oil']},
+  {id:'m4',time:'4:30 PM',name:'Snack',kcal:270,protein:23,carbs:18,fat:9,stripe:4,
+   foods:['250g Low-Fat Curd','100g Orange','10g Almonds']},
+  {id:'m5',time:'8:00 PM',name:'Dinner',kcal:420,protein:65,carbs:20,fat:10,stripe:5,
+   foods:['250g Chicken Breast','Cucumber, Beet, Sweetcorn','5g Sesame Oil']},
+  {id:'m6',time:'9:30 PM',name:'Before Bed',kcal:180,protein:26,carbs:0,fat:8,stripe:6,
+   foods:['4 Egg Whites + 1 Whole Egg']},
+];
+
+/* ─── STATE ─────────────────────────────────────────────────── */
+let curDate = todayStr();
+let activeTab = 'workout';
+let activeDay = 1;
+let settings = loadSettings();
+const timers = {}; // id → {interval, remaining}
+
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function fmtDisplay(ds){
+  const d=new Date(ds+'T00:00:00');
+  if(ds===todayStr())return'Today';
+  const y=new Date();y.setDate(y.getDate()-1);
+  if(ds===y.toISOString().slice(0,10))return'Yesterday';
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short'});
+}
+
+function shiftDay(d){
+  const dt=new Date(curDate+'T00:00:00');dt.setDate(dt.getDate()+d);
+  const ns=dt.toISOString().slice(0,10);
+  if(ns>todayStr())return;
+  curDate=ns;updateHeader();renderContent();
+}
+
+function updateHeader(){
+  document.getElementById('today-chip').textContent=todayStr();
+  document.getElementById('date-lbl').textContent=fmtDisplay(curDate);
+}
+
+/* ─── STORAGE ───────────────────────────────────────────────── */
+function getDayData(ds){
+  const raw=localStorage.getItem('ft_day_'+ds);
+  if(raw)return JSON.parse(raw);
+  return{workouts:{},meals:{}};
+}
+function saveDayData(ds,data){
+  localStorage.setItem('ft_day_'+ds,JSON.stringify(data));
+  showSaved();
+}
+function loadSettings(){
+  const r=localStorage.getItem('ft_settings');
+  return r?JSON.parse(r):{tdee:1700,proteinTarget:185,carbTarget:115,fatTarget:55};
+}
+function saveSettings(){localStorage.setItem('ft_settings',JSON.stringify(settings));showSaved()}
+function getAllDays(){
+  const days=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('ft_day_'))days.push(k.replace('ft_day_',''));
+  }
+  return days.sort((a,b)=>b.localeCompare(a));
+}
+
+/* ─── TOGGLE ────────────────────────────────────────────────── */
+function toggleEx(id,el){
+  const data=getDayData(curDate);
+  if(!data.workouts)data.workouts={};
+  data.workouts[id]=!data.workouts[id];
+  saveDayData(curDate,data);
+  const card=el.closest('.ex-card');
+  const done=data.workouts[id];
+  card.classList.toggle('done-card',done);
+  el.classList.toggle('done',done);
+  const nm=card.querySelector('.ex-name');nm&&nm.classList.toggle('done',done);
+  const rb=card.querySelector('.rest-bar');
+  if(rb){
+    if(done){startRestTimer(id,rb)}
+    else{stopTimer(id);rb.classList.remove('show')}
+  }
+}
+function toggleMeal(id,el){
+  const data=getDayData(curDate);
+  if(!data.meals)data.meals={};
+  data.meals[id]=!data.meals[id];
+  saveDayData(curDate,data);
+  renderContent();
+}
+
+/* ─── REST TIMER ────────────────────────────────────────────── */
+function startRestTimer(id,rb){
+  stopTimer(id);
+  rb.classList.add('show');
+  let remaining=120;
+  const fill=rb.querySelector('.rest-fill');
+  const time=rb.querySelector('.rest-time');
+  function tick(){
+    const m=Math.floor(remaining/60),s=remaining%60;
+    time.textContent=m+':'+(s<10?'0':'')+s;
+    fill.style.width=(remaining/120*100)+'%';
+    if(remaining===0){
+      stopTimer(id);rb.classList.remove('show');
+      try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+      return;
+    }
+    remaining--;
+  }
+  tick();
+  timers[id]={interval:setInterval(tick,1000),remaining};
+}
+function stopTimer(id){
+  if(timers[id]){clearInterval(timers[id].interval);delete timers[id]}
+}
+function skipTimer(id){
+  stopTimer(id);
+  const rb=document.querySelector('[data-timer-id="'+id+'"]');
+  if(rb)rb.classList.remove('show');
+}
+
+/* ─── STATS ─────────────────────────────────────────────────── */
+function getStats(data,day){
+  const dp=WP.find(d=>d.day===day)||WP[0];
+  const allEx=dp.groups.flatMap(g=>g.exercises);
+  const burned=allEx.filter(e=>data.workouts&&data.workouts[e.id]).reduce((s,e)=>s+e.kcal,0);
+  const totalEx=allEx.length,doneEx=allEx.filter(e=>data.workouts&&data.workouts[e.id]).length;
+  const consumed=MEALS.filter(m=>data.meals&&data.meals[m.id]).reduce((s,m)=>s+m.kcal,0);
+  const protein=MEALS.filter(m=>data.meals&&data.meals[m.id]).reduce((s,m)=>s+m.protein,0);
+  const carbs=MEALS.filter(m=>data.meals&&data.meals[m.id]).reduce((s,m)=>s+m.carbs,0);
+  const fat=MEALS.filter(m=>data.meals&&data.meals[m.id]).reduce((s,m)=>s+m.fat,0);
+  const net=consumed-settings.tdee+burned;
+  const deficit=Math.max(0,-net);const surplus=Math.max(0,net);
+  const fatG=(deficit/7700*1000).toFixed(1);
+  const fatKg=(deficit/7700).toFixed(3);
+  return{burned,consumed,protein,carbs,fat,net,deficit,surplus,fatG,fatKg,totalEx,doneEx};
+}
+
+/* ─── TABS ──────────────────────────────────────────────────── */
+function setTab(tab,el){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  if(el)el.classList.add('on');
+  renderContent();
+}
+
+function renderContent(){
+  const c=document.getElementById('content');
+  const data=getDayData(curDate);
+  const s=getStats(data,activeDay);
+
+  if(activeTab==='workout'){
+    const dp=WP.find(d=>d.day===activeDay);
+    const allEx=dp.groups.flatMap(g=>g.exercises);
+    const totalKcal=allEx.reduce((a,e)=>a+e.kcal,0);
+
+    let html=`
+    <div class="stat-grid">
+      <div class="stat"><div class="sv g">${s.doneEx}/${s.totalEx}</div><div class="sl">Done</div></div>
+      <div class="stat"><div class="sv o">${s.burned}</div><div class="sl">Kcal Burned</div></div>
+      <div class="stat"><div class="sv">${totalKcal-s.burned}</div><div class="sl">Remaining</div></div>
+    </div>
+    <div class="day-picker">`;
+    WP.forEach(d=>{
+      html+=`<div class="day-btn ${activeDay===d.day?'on':''}" onclick="setDay(${d.day})"><span class="dnum">D${d.day}</span><span style="font-size:9px;color:var(--muted)">${d.emoji}</span></div>`;
+    });
+    html+=`</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;color:var(--muted);margin-bottom:12px">${dp.name}</div>`;
+
+    dp.groups.forEach(g=>{
+      html+=`<div class="group-label" style="color:${g.color}">${g.muscle}</div>`;
+      g.exercises.forEach(e=>{
+        const done=!!(data.workouts&&data.workouts[e.id]);
+        const chipBg=done?'rgba(200,245,66,.15)':'rgba(255,255,255,.06)';
+        const chipC=done?'#c8f542':'#6b7a70';
+        html+=`
+        <div class="ex-card ${done?'done-card':''}" id="card-${e.id}">
+          <div class="ex-row">
+            <div class="cbox ${done?'done':''}" onclick="toggleEx('${e.id}',this)"></div>
+            <div class="ex-info">
+              <div class="ex-name ${done?'done':''}">${e.name}</div>
+              <div class="ex-sets">${e.sets}</div>
+            </div>
+            <div class="ex-right">
+              <span class="kcal-chip" style="background:${chipBg};color:${chipC}">${e.kcal} kcal</span>
+              <button class="demo-btn" onclick="openDemo('${e.id}')">▶ Demo</button>
+            </div>
+          </div>
+          <div class="rest-bar ${done?'show':''}" data-timer-id="${e.id}">
+            <div class="rest-inner">
+              <div>
+                <div class="rest-label">REST</div>
+                <div class="rest-time" id="rt-${e.id}">2:00</div>
+              </div>
+              <div style="flex:1">
+                <div class="rest-track"><div class="rest-fill" id="rf-${e.id}" style="width:100%"></div></div>
+              </div>
+              <button class="skip-btn" onclick="skipTimer('${e.id}')">Skip</button>
+            </div>
+          </div>
+        </div>`;
+      });
+    });
+    c.innerHTML=html;
+    // Restart active timers
+    Object.keys(timers).forEach(id=>{
+      const rb=document.querySelector('[data-timer-id="'+id+'"]');
+      if(rb)rb.classList.add('show');
+    });
+
+  } else if(activeTab==='diet'){
+    const mDone=MEALS.filter(m=>data.meals&&data.meals[m.id]).length;
+    let html=`
+    <div class="stat-grid">
+      <div class="stat"><div class="sv o">${s.consumed}</div><div class="sl">Kcal Eaten</div></div>
+      <div class="stat"><div class="sv g">${s.protein}g</div><div class="sl">Protein</div></div>
+      <div class="stat"><div class="sv t">${s.carbs}g</div><div class="sl">Carbs</div></div>
+    </div>`;
+    MEALS.forEach(m=>{
+      const done=!!(data.meals&&data.meals[m.id]);
+      html+=`
+      <div class="meal-card meal-stripe-${m.stripe} ${done?'done-card':''}">
+        <div class="meal-top">
+          <div class="meal-check">
+            <div class="cbox ${done?'done':''}" onclick="toggleMeal('${m.id}',this)" style="margin-top:4px"></div>
+          </div>
+          <div class="meal-info">
+            <div class="meal-time">${m.time}</div>
+            <div class="meal-name">${m.name}</div>
+          </div>
+          <div class="meal-kcal-col">
+            <div class="meal-kcal-num">${m.kcal}</div>
+            <div class="meal-kcal-lbl">kcal</div>
+          </div>
+        </div>
+        <ul class="meal-foods">${m.foods.map(f=>`<li>${f}</li>`).join('')}</ul>
+        <div class="macro-pills">
+          ${m.protein>0?`<div class="mpill"><strong>${m.protein}g</strong> P</div>`:''}
+          ${m.carbs>0?`<div class="mpill"><strong>${m.carbs}g</strong> C</div>`:''}
+          ${m.fat>0?`<div class="mpill"><strong>${m.fat}g</strong> F</div>`:''}
+          ${done?`<div class="mpill" style="background:rgba(200,245,66,.08);color:#c8f542;border-color:rgba(200,245,66,.2)">✓ Done</div>`:''}
+        </div>
+      </div>`;
+    });
+    if(s.protein>0||s.carbs>0||s.fat>0){
+      html+=`
+      <div class="sum-block" style="margin-top:4px">
+        <div class="sum-title">Macros acquired</div>
+        <div class="macro-prog"><div class="mp-head"><span>Protein</span><span>${s.protein}g / ${settings.proteinTarget}g</span></div><div class="mp-track"><div class="mp-fill" style="width:${Math.min(100,s.protein/settings.proteinTarget*100).toFixed(0)}%;background:#38d9c0"></div></div></div>
+        <div class="macro-prog"><div class="mp-head"><span>Carbs</span><span>${s.carbs}g / ${settings.carbTarget}g</span></div><div class="mp-track"><div class="mp-fill" style="width:${Math.min(100,s.carbs/settings.carbTarget*100).toFixed(0)}%;background:#c8f542"></div></div></div>
+        <div class="macro-prog"><div class="mp-head"><span>Fat</span><span>${s.fat}g / ${settings.fatTarget}g</span></div><div class="mp-track"><div class="mp-fill" style="width:${Math.min(100,s.fat/settings.fatTarget*100).toFixed(0)}%;background:#ff6b35"></div></div></div>
+      </div>`;
+    }
+    c.innerHTML=html;
+
+  } else if(activeTab==='summary'){
+    const isD=s.deficit>0;
+    c.innerHTML=`
+    <div class="sum-block">
+      <div class="sum-title">Today's Progress</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="sv g">${s.doneEx}</div><div class="sl">Exercises</div></div>
+        <div class="stat"><div class="sv o">${s.burned}</div><div class="sl">Burned kcal</div></div>
+        <div class="stat"><div class="sv t">${MEALS.filter(m=>data.meals&&data.meals[m.id]).length}/6</div><div class="sl">Meals done</div></div>
+      </div>
+    </div>
+    <div class="sum-block">
+      <div class="sum-title">Calorie Balance</div>
+      <div class="stat-grid" style="margin-bottom:12px">
+        <div class="stat"><div class="sv">${settings.tdee}</div><div class="sl">TDEE</div></div>
+        <div class="stat"><div class="sv o">${s.consumed}</div><div class="sl">Eaten</div></div>
+        <div class="stat"><div class="sv g">${s.burned}</div><div class="sl">Burned</div></div>
+      </div>
+      <div style="background:var(--bg);border-radius:10px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'Space Mono',monospace">${isD?'DEFICIT':'SURPLUS'}</div>
+        <div class="big-n ${isD?'g':'r'}">${isD?s.deficit:s.surplus} <span style="font-size:18px">kcal</span></div>
+        <div class="big-sub">Eaten ${s.consumed} − TDEE ${settings.tdee} + Burned ${s.burned}</div>
+      </div>
+    </div>
+    <div class="sum-block">
+      <div class="sum-title">Fat Loss Estimate</div>
+      <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:${isD?'12px':'0'}">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'Space Mono',monospace">FAT BURNED TODAY</div>
+        <div class="big-n g">${s.fatG}g <span style="font-size:14px;color:var(--muted)">/ ${s.fatKg} kg</span></div>
+        <div class="big-sub">1 kg fat ≈ 7,700 kcal · ${s.deficit} deficit → ${s.fatG}g fat</div>
+      </div>
+      ${isD?`<div class="proj-row">
+        <div class="proj"><div class="proj-l">1 week</div><div class="proj-v">${(s.deficit*7/7700).toFixed(2)} kg</div></div>
+        <div class="proj"><div class="proj-l">1 month</div><div class="proj-v">${(s.deficit*30/7700).toFixed(2)} kg</div></div>
+        <div class="proj"><div class="proj-l">3 months</div><div class="proj-v">${(s.deficit*90/7700).toFixed(2)} kg</div></div>
+      </div>`:''}
+    </div>
+    <div class="sum-block">
+      <div class="sum-title">Total Macros Today</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="sv t">${s.protein}g</div><div class="sl">Protein</div></div>
+        <div class="stat"><div class="sv g">${s.carbs}g</div><div class="sl">Carbs</div></div>
+        <div class="stat"><div class="sv o">${s.fat}g</div><div class="sl">Fat</div></div>
+      </div>
+    </div>`;
+
+  } else if(activeTab==='history'){
+    const days=getAllDays();
+    if(!days.length){c.innerHTML=`<div class="empty"><div class="e-icon">📅</div>No records yet.<br>Complete workouts and meals to build your history.</div>`;return}
+    let html='';
+    days.forEach(ds=>{
+      const d=getDayData(ds);
+      const st=getStats(d,activeDay);
+      const mD=MEALS.filter(m=>d.meals&&d.meals[m.id]).length;
+      const dp=WP.find(x=>x.day===activeDay)||WP[0];
+      const allEx=dp.groups.flatMap(g=>g.exercises);
+      const wD=allEx.filter(e=>d.workouts&&d.workouts[e.id]).length;
+      html+=`<div class="hist-day" onclick="jumpTo('${ds}')">
+        <div class="hist-head">
+          <div class="hist-date">${ds}</div>
+          <div class="hist-pills">
+            <span class="kcal-chip" style="background:rgba(200,245,66,.1);color:#c8f542">${wD} ex</span>
+            <span class="kcal-chip" style="background:rgba(56,217,192,.1);color:#38d9c0">${mD} meals</span>
+          </div>
+        </div>
+        <div class="hist-stats">
+          <div class="hs">Burned <span>${st.burned} kcal</span></div>
+          <div class="hs">Eaten <span>${st.consumed} kcal</span></div>
+          <div class="hs">Deficit <span style="color:${st.deficit>0?'#c8f542':'#ff4757'}">${st.deficit>0?st.deficit:'-'+st.surplus} kcal</span></div>
+          <div class="hs">Fat <span>${st.fatG}g</span></div>
+        </div>
+      </div>`;
+    });
+    c.innerHTML=html;
+
+  } else if(activeTab==='settings'){
+    c.innerHTML=`
+    <div class="sum-block">
+      <div class="sum-title">Your Targets</div>
+      <div class="set-row"><span class="set-lbl">Daily Calorie Target (TDEE)</span><input class="set-inp" type="number" value="${settings.tdee}" onchange="upd('tdee',this.value)"></div>
+      <div class="set-row"><span class="set-lbl">Protein Target (g)</span><input class="set-inp" type="number" value="${settings.proteinTarget}" onchange="upd('proteinTarget',this.value)"></div>
+      <div class="set-row"><span class="set-lbl">Carbs Target (g)</span><input class="set-inp" type="number" value="${settings.carbTarget}" onchange="upd('carbTarget',this.value)"></div>
+      <div class="set-row"><span class="set-lbl">Fat Target (g)</span><input class="set-inp" type="number" value="${settings.fatTarget}" onchange="upd('fatTarget',this.value)"></div>
+    </div>
+    <div class="sum-block" style="border-color:rgba(255,71,87,.2)">
+      <div class="sum-title" style="color:var(--red)">Danger Zone</div>
+      <div class="set-row">
+        <span class="set-lbl">Clear all saved data</span>
+        <button onclick="clearAll()" style="background:rgba(255,71,87,.1);color:var(--red);border:1px solid rgba(255,71,87,.3);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer">Clear All</button>
+      </div>
+    </div>`;
+  }
+}
+
+function setDay(d){activeDay=d;renderContent()}
+function jumpTo(ds){curDate=ds;updateHeader();setTab('summary');document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',i===2))}
+function upd(k,v){settings[k]=parseInt(v)||0;saveSettings();renderContent()}
+function clearAll(){if(!confirm('Delete all fitness records? Cannot be undone.'))return;const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith('ft_day_')||k==='ft_settings'))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k));settings=loadSettings();renderContent()}
+
+/* ─── DEMO MODAL ─────────────────────────────────────────────── */
+function openDemo(id){
+  let ex=null;
+  for(const d of WP){for(const g of d.groups){const f=g.exercises.find(e=>e.id===id);if(f){ex=f;break}}if(ex)break}
+  if(!ex)return;
+  document.getElementById('modal-title').textContent=ex.name;
+  document.getElementById('modal-tags').innerHTML=`<span class="muscle-tag">${ex.sets}</span><span class="muscle-tag" style="background:rgba(255,107,53,.1);color:#ff6b35;border-color:rgba(255,107,53,.2)">${ex.cat.toUpperCase()}</span>`;
+  document.getElementById('modal-steps').innerHTML=ex.steps.map((s,i)=>`<li><span class="step-n">${i+1}</span><span>${s}</span></li>`).join('');
+  // animation
+  const anim=document.getElementById('modal-anim');
+  anim.innerHTML=`<div class="pulse-dot"></div>${getAnimSVG(ex.cat)}`;
+  document.getElementById('modal-bg').classList.add('open');
+}
+function getAnimSVG(cat){
+  const svgs={
+    push:`<svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="10" r="6" fill="#c8f542" class="anim-push"/>
+      <line x1="30" y1="16" x2="30" y2="35" stroke="#c8f542" stroke-width="2.5" class="anim-push"/>
+      <line x1="30" y1="25" x2="15" y2="33" stroke="#c8f542" stroke-width="2" class="anim-push"/>
+      <line x1="30" y1="25" x2="45" y2="33" stroke="#c8f542" stroke-width="2" class="anim-push"/>
+      <line x1="30" y1="35" x2="22" y2="50" stroke="#c8f542" stroke-width="2" class="anim-push"/>
+      <line x1="30" y1="35" x2="38" y2="50" stroke="#c8f542" stroke-width="2" class="anim-push"/>
+    </svg>`,
+    pull:`<svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="50" r="6" fill="#ff6b35" class="anim-pull"/>
+      <line x1="30" y1="44" x2="30" y2="25" stroke="#ff6b35" stroke-width="2.5" class="anim-pull"/>
+      <line x1="30" y1="35" x2="15" y2="27" stroke="#ff6b35" stroke-width="2" class="anim-pull"/>
+      <line x1="30" y1="35" x2="45" y2="27" stroke="#ff6b35" stroke-width="2" class="anim-pull"/>
+      <line x1="30" y1="25" x2="22" y2="10" stroke="#ff6b35" stroke-width="2" class="anim-pull"/>
+      <line x1="30" y1="25" x2="38" y2="10" stroke="#ff6b35" stroke-width="2" class="anim-pull"/>
+    </svg>`,
+    legs:`<svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="8" r="6" fill="#38d9c0"/>
+      <rect x="26" y="14" width="8" height="18" rx="3" fill="#38d9c0" class="anim-legs"/>
+      <rect x="19" y="32" width="6" height="16" rx="3" fill="#38d9c0" class="anim-legs"/>
+      <rect x="35" y="32" width="6" height="16" rx="3" fill="#38d9c0" class="anim-legs"/>
+    </svg>`,
+    curl:`<svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="12" r="6" fill="#c8f542"/>
+      <line x1="30" y1="18" x2="30" y2="36" stroke="#c8f542" stroke-width="2.5"/>
+      <line x1="30" y1="26" x2="18" y2="32" stroke="#c8f542" stroke-width="2" class="anim-curl"/>
+      <circle cx="11" cy="32" r="5" fill="#ff6b35" class="anim-curl"/>
+      <line x1="30" y1="26" x2="42" y2="32" stroke="#c8f542" stroke-width="2"/>
+      <line x1="30" y1="36" x2="22" y2="52" stroke="#c8f542" stroke-width="2"/>
+      <line x1="30" y1="36" x2="38" y2="52" stroke="#c8f542" stroke-width="2"/>
+    </svg>`,
+    core:`<svg width="60" height="60" viewBox="0 0 60 60">
+      <ellipse cx="30" cy="30" rx="20" ry="8" fill="none" stroke="#38d9c0" stroke-width="2" class="anim-core"/>
+      <circle cx="30" cy="30" r="5" fill="#38d9c0" class="anim-core"/>
+      <line x1="10" y1="30" x2="50" y2="30" stroke="#c8f542" stroke-width="1.5" stroke-dasharray="3,3" class="anim-core"/>
+    </svg>`,
+    cardio:`<svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="10" r="6" fill="#c8f542"/>
+      <line x1="30" y1="16" x2="30" y2="34" stroke="#c8f542" stroke-width="2.5"/>
+      <line x1="30" y1="22" x2="18" y2="30" stroke="#ff6b35" stroke-width="2" class="anim-cardio"/>
+      <line x1="30" y1="22" x2="42" y2="30" stroke="#ff6b35" stroke-width="2" class="anim-cardio"/>
+      <line x1="30" y1="34" x2="20" y2="50" stroke="#c8f542" stroke-width="2" class="anim-cardio"/>
+      <line x1="30" y1="34" x2="40" y2="50" stroke="#c8f542" stroke-width="2" class="anim-cardio"/>
+    </svg>`,
+    shoulders:`<svg width="60" height="60" viewBox="0 0 60 60">
+      <circle cx="30" cy="16" r="6" fill="#c8f542"/>
+      <line x1="30" y1="22" x2="30" y2="38" stroke="#c8f542" stroke-width="2.5"/>
+      <line x1="30" y1="26" x2="12" y2="20" stroke="#ff6b35" stroke-width="2" class="anim-shoulders"/>
+      <circle cx="8" cy="18" r="5" fill="#ff6b35" class="anim-shoulders"/>
+      <line x1="30" y1="26" x2="48" y2="20" stroke="#ff6b35" stroke-width="2" class="anim-shoulders"/>
+      <circle cx="52" cy="18" r="5" fill="#ff6b35" class="anim-shoulders"/>
+      <line x1="30" y1="38" x2="22" y2="54" stroke="#c8f542" stroke-width="2"/>
+      <line x1="30" y1="38" x2="38" y2="54" stroke="#c8f542" stroke-width="2"/>
+    </svg>`
+  };
+  return svgs[cat]||svgs['push'];
+}
+function closeModal(e){if(e.target===document.getElementById('modal-bg'))closeModalDirect()}
+function closeModalDirect(){document.getElementById('modal-bg').classList.remove('open')}
+
+/* ─── SAVE INDICATOR ─────────────────────────────────────────── */
+let st;function showSaved(){const p=document.getElementById('save-pill');p.classList.add('show');clearTimeout(st);st=setTimeout(()=>p.classList.remove('show'),1400)}
+
+/* ─── INIT ───────────────────────────────────────────────────── */
+updateHeader();renderContent();
+</script>
+</body>
+</html>
