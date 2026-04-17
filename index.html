@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Fitness Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0f11;
+    --bg2: #16181c;
+    --bg3: #1e2026;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.1);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96,165,250,0.1);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251,191,36,0.1);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --teal: #2dd4bf;
+    --teal-bg: rgba(45,212,191,0.1);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .app-shell {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 80px;
+  }
+
+  /* Header */
+  .header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .app-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .date-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    background: var(--bg3);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { border-color: var(--border2); color: var(--text); }
+  .date-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 90px;
+    text-align: center;
+    color: var(--text);
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    padding: 0 20px;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 89px;
+    z-index: 9;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 12px 4px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+
+  /* Content */
+  .content { padding: 16px 20px; }
+
+  /* Stat grid */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+  }
+  .stat-val.green { color: var(--green); }
+  .stat-val.amber { color: var(--amber); }
+  .stat-val.blue { color: var(--blue); }
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* List cards */
+  .list-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .list-card-title {
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check-row:hover { background: var(--bg3); }
+
+  .custom-check {
+    width: 20px; height: 20px;
+    border: 1.5px solid var(--border2);
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    background: var(--bg);
+  }
+  .custom-check.checked {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .custom-check.checked::after {
+    content: '';
+    width: 5px; height: 9px;
+    border: 2px solid #000;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+  }
+
+  .row-info { flex: 1; min-width: 0; }
+  .row-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .row-name.done {
+    text-decoration: line-through;
+    color: var(--text3);
+  }
+  .row-sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+  .macro-pills {
+    display: flex;
+    gap: 5px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .pill-green { background: var(--green-bg); color: var(--green); }
+  .pill-blue  { background: var(--blue-bg);  color: var(--blue);  }
+  .pill-amber { background: var(--amber-bg); color: var(--amber); }
+  .pill-teal  { background: var(--teal-bg);  color: var(--teal);  }
+
+  .kcal-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* Progress bars */
+  .macro-progress { margin-bottom: 8px; }
+  .macro-progress-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+  .macro-progress-head span:first-child { color: var(--text2); }
+  .macro-progress-head span:last-child {
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+  }
+  .bar-track {
+    height: 5px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* Summary cards */
+  .summary-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .summary-block-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text2);
+    margin-bottom: 12px;
+  }
+  .big-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 32px;
+    font-weight: 600;
+  }
+  .big-number.green { color: var(--green); }
+  .big-number.red   { color: var(--red); }
+  .big-sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .projection-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .proj-item { flex: 1; }
+  .proj-lbl {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 3px;
+  }
+  .proj-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--green);
+  }
+
+  /* History tab */
+  .history-day {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .history-day:hover { border-color: var(--border2); }
+  .history-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .history-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .history-badges { display: flex; gap: 6px; }
+  .history-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .history-stat { font-size: 12px; color: var(--text2); }
+  .history-stat span {
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text3);
+    font-size: 14px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+  /* Settings inputs */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label { font-size: 13px; color: var(--text2); }
+  .settings-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 6px 10px;
+    width: 100px;
+    text-align: right;
+    outline: none;
+  }
+  .settings-input:focus { border-color: var(--green); }
+
+  /* Save indicator */
+  .save-pill {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #000;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .save-pill.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="header">
+    <div class="header-top">
+      <div class="app-title">💪 Fitness Log</div>
+      <div class="date-badge" id="today-badge"></div>
+    </div>
+    <div class="date-nav">
+      <button class="nav-btn" onclick="changeDay(-1)">‹</button>
+      <div class="date-label" id="nav-date-label"></div>
+      <button class="nav-btn" onclick="changeDay(1)">›</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab('workouts',this)">Workouts</button>
+    <button class="tab-btn" onclick="setTab('meals',this)">Meals</button>
+    <button class="tab-btn" onclick="setTab('summary',this)">Summary</button>
+    <button class="tab-btn" onclick="setTab('history',this)">History</button>
+    <button class="tab-btn" onclick="setTab('settings',this)">Settings</button>
+  </div>
+
+  <div class="content" id="tab-content"></div>
+</div>
+
+<div class="save-pill" id="save-pill">Saved ✓</div>
+
+<script>
+// ─── Default Data ───────────────────────────────────────────────────────────
+const DEFAULT_WORKOUTS = [
+  {id:1, name:'Push-ups',    sets:'3×20 reps',  calories:80},
+  {id:2, name:'Squats',      sets:'4×15 reps',  calories:120},
+  {id:3, name:'Running',     sets:'20 minutes', calories:200},
+  {id:4, name:'Plank',       sets:'3×60 sec',   calories:30},
+  {id:5, name:'Pull-ups',    sets:'3×10 reps',  calories:90},
+  {id:6, name:'Bicep curls', sets:'3×12 reps',  calories:50},
+  {id:7, name:'Jump rope',   sets:'10 minutes', calories:110},
+];
+
+const DEFAULT_MEALS = [
+  {id:1, name:'Breakfast – Oats & eggs',    cals:480, protein:32, carbs:55, fat:14},
+  {id:2, name:'Lunch – Chicken rice bowl',  cals:620, protein:48, carbs:65, fat:12},
+  {id:3, name:'Snack – Greek yogurt',       cals:180, protein:18, carbs:14, fat:5},
+  {id:4, name:'Dinner – Salmon & veggies',  cals:520, protein:42, carbs:28, fat:22},
+];
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let currentDateStr = todayStr();
+let activeTab = 'workouts';
+let settings = loadSettings();
+
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function formatDisplay(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = todayStr();
+  if (dateStr === today) return 'Today';
+  const yest = new Date(); yest.setDate(yest.getDate()-1);
+  if (dateStr === yest.toISOString().slice(0,10)) return 'Yesterday';
+  return d.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+}
+
+function changeDay(delta) {
+  const d = new Date(currentDateStr + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  const newStr = d.toISOString().slice(0,10);
+  if (newStr > todayStr()) return;
+  currentDateStr = newStr;
+  updateDateUI();
+  renderTab();
+}
+
+function updateDateUI() {
+  document.getElementById('today-badge').textContent = todayStr();
+  document.getElementById('nav-date-label').textContent = formatDisplay(currentDateStr);
+}
+
+// ─── LocalStorage ────────────────────────────────────────────────────────────
+function getDayData(dateStr) {
+  const raw = localStorage.getItem('fit_day_' + dateStr);
+  if (raw) return JSON.parse(raw);
+  return {
+    workouts: DEFAULT_WORKOUTS.map(w => ({...w, done:false})),
+    meals:    DEFAULT_MEALS.map(m => ({...m, done:false})),
+  };
+}
+
+function saveDayData(dateStr, data) {
+  localStorage.setItem('fit_day_' + dateStr, JSON.stringify(data));
+  showSaved();
+}
+
+function loadSettings() {
+  const raw = localStorage.getItem('fit_settings');
+  return raw ? JSON.parse(raw) : { tdee:2400, proteinTarget:160, carbTarget:220, fatTarget:65 };
+}
+
+function saveSettings() {
+  localStorage.setItem('fit_settings', JSON.stringify(settings));
+  showSaved();
+}
+
+function getAllDays() {
+  const days = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('fit_day_')) {
+      const dateStr = key.replace('fit_day_','');
+      days.push(dateStr);
+    }
+  }
+  return days.sort((a,b) => b.localeCompare(a));
+}
+
+// ─── Toggle ──────────────────────────────────────────────────────────────────
+function toggleItem(type, id) {
+  const data = getDayData(currentDateStr);
+  data[type] = data[type].map(x => x.id===id ? {...x, done:!x.done} : x);
+  saveDayData(currentDateStr, data);
+  renderTab();
+}
+
+// ─── Computed ────────────────────────────────────────────────────────────────
+function getStats(data) {
+  const burned   = data.workouts.filter(w=>w.done).reduce((s,w)=>s+w.calories,0);
+  const consumed = data.meals.filter(m=>m.done).reduce((s,m)=>s+m.cals,0);
+  const protein  = data.meals.filter(m=>m.done).reduce((s,m)=>s+m.protein,0);
+  const carbs    = data.meals.filter(m=>m.done).reduce((s,m)=>s+m.carbs,0);
+  const fat      = data.meals.filter(m=>m.done).reduce((s,m)=>s+m.fat,0);
+  const net      = consumed - settings.tdee + burned;
+  const deficit  = Math.max(0, -net);
+  const surplus  = Math.max(0, net);
+  const fatLostG = (deficit / 7700 * 1000).toFixed(1);
+  const fatLostKg= (deficit / 7700).toFixed(3);
+  return { burned, consumed, protein, carbs, fat, net, deficit, surplus, fatLostG, fatLostKg };
+}
+
+// ─── Tabs ────────────────────────────────────────────────────────────────────
+function setTab(tab, el) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderTab();
+}
+
+function renderTab() {
+  const data = getDayData(currentDateStr);
+  const s = getStats(data);
+  const c = document.getElementById('tab-content');
+
+  if (activeTab === 'workouts') {
+    const totalCals = data.workouts.reduce((a,w)=>a+w.calories,0);
+    c.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val green">${data.workouts.filter(w=>w.done).length}/${data.workouts.length}</div><div class="stat-lbl">Done</div></div>
+        <div class="stat-card"><div class="stat-val amber">${s.burned}</div><div class="stat-lbl">Kcal Burned</div></div>
+        <div class="stat-card"><div class="stat-val">${totalCals - s.burned}</div><div class="stat-lbl">Remaining</div></div>
+      </div>
+      <div class="list-card">
+        <div class="list-card-title">Workouts · ${formatDisplay(currentDateStr)}</div>
+        ${data.workouts.map(w => `
+        <div class="check-row">
+          <div class="custom-check ${w.done?'checked':''}" onclick="toggleItem('workouts',${w.id})"></div>
+          <div class="row-info">
+            <div class="row-name ${w.done?'done':''}">${w.name}</div>
+            <div class="row-sub">${w.sets}</div>
+          </div>
+          <span class="kcal-tag" style="background:${w.done?'var(--green-bg)':'var(--amber-bg)'};color:${w.done?'var(--green)':'var(--amber)'}">${w.calories} kcal</span>
+        </div>`).join('')}
+      </div>`;
+  }
+
+  else if (activeTab === 'meals') {
+    c.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val amber">${s.consumed}</div><div class="stat-lbl">Kcal Eaten</div></div>
+        <div class="stat-card"><div class="stat-val green">${s.protein}g</div><div class="stat-lbl">Protein</div></div>
+        <div class="stat-card"><div class="stat-val blue">${s.carbs}g</div><div class="stat-lbl">Carbs</div></div>
+      </div>
+      <div class="list-card">
+        <div class="list-card-title">Meals · ${formatDisplay(currentDateStr)}</div>
+        ${data.meals.map(m => `
+        <div class="check-row">
+          <div class="custom-check ${m.done?'checked':''}" onclick="toggleItem('meals',${m.id})"></div>
+          <div class="row-info">
+            <div class="row-name ${m.done?'done':''}">${m.name}</div>
+            ${m.done ? `
+            <div class="macro-pills">
+              <span class="pill pill-teal">P ${m.protein}g</span>
+              <span class="pill pill-blue">C ${m.carbs}g</span>
+              <span class="pill pill-amber">F ${m.fat}g</span>
+              <span class="pill pill-green">${m.cals} kcal</span>
+            </div>` : `<div class="row-sub">${m.cals} kcal · P${m.protein}g C${m.carbs}g F${m.fat}g</div>`}
+          </div>
+          <span class="kcal-tag" style="background:${m.done?'var(--green-bg)':'var(--blue-bg)'};color:${m.done?'var(--green)':'var(--blue)'}">${m.cals} kcal</span>
+        </div>`).join('')}
+      </div>
+      ${(s.protein>0||s.carbs>0||s.fat>0) ? `
+      <div class="summary-block">
+        <div class="summary-block-title">Macros acquired</div>
+        <div class="macro-progress">
+          <div class="macro-progress-head"><span>Protein</span><span>${s.protein}g / ${settings.proteinTarget}g</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,s.protein/settings.proteinTarget*100).toFixed(1)}%;background:var(--teal)"></div></div>
+        </div>
+        <div class="macro-progress">
+          <div class="macro-progress-head"><span>Carbs</span><span>${s.carbs}g / ${settings.carbTarget}g</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,s.carbs/settings.carbTarget*100).toFixed(1)}%;background:var(--blue)"></div></div>
+        </div>
+        <div class="macro-progress">
+          <div class="macro-progress-head"><span>Fat</span><span>${s.fat}g / ${settings.fatTarget}g</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,s.fat/settings.fatTarget*100).toFixed(1)}%;background:var(--amber)"></div></div>
+        </div>
+      </div>` : ''}`;
+  }
+
+  else if (activeTab === 'summary') {
+    const isDeficit = s.deficit > 0;
+    c.innerHTML = `
+      <div class="summary-block">
+        <div class="summary-block-title">Calorie balance</div>
+        <div class="stat-grid" style="margin-bottom:12px">
+          <div class="stat-card"><div class="stat-val">${settings.tdee}</div><div class="stat-lbl">TDEE</div></div>
+          <div class="stat-card"><div class="stat-val amber">${s.consumed}</div><div class="stat-lbl">Eaten</div></div>
+          <div class="stat-card"><div class="stat-val green">${s.burned}</div><div class="stat-lbl">Burned</div></div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:14px">
+          <div class="big-sub" style="margin-bottom:4px">${isDeficit ? 'Calorie deficit' : 'Calorie surplus'}</div>
+          <div class="big-number ${isDeficit?'green':'red'}">${isDeficit?s.deficit:s.surplus} <span style="font-size:16px">kcal</span></div>
+          <div class="big-sub" style="margin-top:6px">Eaten ${s.consumed} − TDEE ${settings.tdee} + Burned ${s.burned}</div>
+        </div>
+      </div>
+      <div class="summary-block">
+        <div class="summary-block-title">Fat loss estimate</div>
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:${isDeficit?'12px':'0'}">
+          <div class="big-sub" style="margin-bottom:4px">Fat burned today</div>
+          <div class="big-number green">${s.fatLostG}g <span style="font-size:14px;color:var(--text2)">/ ${s.fatLostKg} kg</span></div>
+          <div class="big-sub" style="margin-top:6px">1 kg fat ≈ 7,700 kcal · ${s.deficit} kcal deficit → ${s.fatLostG}g</div>
+        </div>
+        ${isDeficit ? `
+        <div class="projection-row">
+          <div class="proj-item"><div class="proj-lbl">1 week</div><div class="proj-val">${(s.deficit*7/7700).toFixed(2)} kg</div></div>
+          <div class="proj-item"><div class="proj-lbl">1 month</div><div class="proj-val">${(s.deficit*30/7700).toFixed(2)} kg</div></div>
+          <div class="proj-item"><div class="proj-lbl">3 months</div><div class="proj-val">${(s.deficit*90/7700).toFixed(2)} kg</div></div>
+        </div>` : ''}
+      </div>
+      <div class="summary-block">
+        <div class="summary-block-title">Total macros today</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val" style="color:var(--teal)">${s.protein}g</div><div class="stat-lbl">Protein</div></div>
+          <div class="stat-card"><div class="stat-val blue">${s.carbs}g</div><div class="stat-lbl">Carbs</div></div>
+          <div class="stat-card"><div class="stat-val amber">${s.fat}g</div><div class="stat-lbl">Fat</div></div>
+        </div>
+      </div>`;
+  }
+
+  else if (activeTab === 'history') {
+    const allDays = getAllDays();
+    if (allDays.length === 0) {
+      c.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div>No records yet.<br>Complete workouts and meals to build your history.</div>`;
+      return;
+    }
+    c.innerHTML = allDays.map(dateStr => {
+      const d = getDayData(dateStr);
+      const st = getStats(d);
+      const wDone = d.workouts.filter(w=>w.done).length;
+      const mDone = d.meals.filter(m=>m.done).length;
+      return `
+      <div class="history-day" onclick="jumpToDay('${dateStr}')">
+        <div class="history-day-head">
+          <div class="history-date">${dateStr}</div>
+          <div class="history-badges">
+            <span class="pill pill-green">${wDone} workouts</span>
+            <span class="pill pill-blue">${mDone} meals</span>
+          </div>
+        </div>
+        <div class="history-stats">
+          <div class="history-stat">Burned <span>${st.burned} kcal</span></div>
+          <div class="history-stat">Eaten <span>${st.consumed} kcal</span></div>
+          <div class="history-stat">Deficit <span style="color:${st.deficit>0?'var(--green)':'var(--red)'}">${st.deficit>0?st.deficit:'-'+st.surplus} kcal</span></div>
+          <div class="history-stat">Fat lost <span>${st.fatLostG}g</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  else if (activeTab === 'settings') {
+    c.innerHTML = `
+      <div class="summary-block">
+        <div class="summary-block-title">Your targets</div>
+        <div class="settings-row">
+          <span class="settings-label">TDEE (daily calories)</span>
+          <input class="settings-input" type="number" value="${settings.tdee}" onchange="updateSetting('tdee',this.value)">
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Protein target (g)</span>
+          <input class="settings-input" type="number" value="${settings.proteinTarget}" onchange="updateSetting('proteinTarget',this.value)">
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Carbs target (g)</span>
+          <input class="settings-input" type="number" value="${settings.carbTarget}" onchange="updateSetting('carbTarget',this.value)">
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Fat target (g)</span>
+          <input class="settings-input" type="number" value="${settings.fatTarget}" onchange="updateSetting('fatTarget',this.value)">
+        </div>
+      </div>
+      <div class="summary-block" style="border-color:var(--red-bg)">
+        <div class="summary-block-title" style="color:var(--red)">Danger zone</div>
+        <div class="settings-row">
+          <span class="settings-label">Clear all data</span>
+          <button onclick="clearAll()" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer">Clear</button>
+        </div>
+      </div>`;
+  }
+}
+
+function jumpToDay(dateStr) {
+  currentDateStr = dateStr;
+  updateDateUI();
+  setTab('summary');
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', i === 2);
+  });
+}
+
+function updateSetting(key, val) {
+  settings[key] = parseInt(val) || 0;
+  saveSettings();
+}
+
+function clearAll() {
+  if (!confirm('Delete all fitness records? This cannot be undone.')) return;
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && (k.startsWith('fit_day_') || k === 'fit_settings')) keys.push(k);
+  }
+  keys.forEach(k => localStorage.removeItem(k));
+  settings = loadSettings();
+  renderTab();
+}
+
+// ─── Save indicator ──────────────────────────────────────────────────────────
+let saveTimer;
+function showSaved() {
+  const pill = document.getElementById('save-pill');
+  pill.classList.add('show');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => pill.classList.remove('show'), 1500);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+updateDateUI();
+renderTab();
+</script>
+</body>
+</html>
