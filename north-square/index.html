@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>North N² | Premium Residences</title>
+<meta name="description" content="North N² — residential and commercial addresses designed around light, space and community.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='black'/%3E%3Cpath d='M18 50V16l26 34V16' stroke='%23bbb' stroke-width='3' fill='none'/%3E%3Ctext x='47' y='17' font-size='14' fill='%23bbb' font-family='sans-serif'%3E2%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  @font-face { font-family: 'Montserrat'; src: url(assets/fonts/montserrat-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: 'Inter'; src: url(assets/fonts/inter-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+
+  :root {
+    --bg: #000;
+    --text: #ededed;
+    --muted: #8c8c8c;
+    --dim: #4f4f4f;
+    --line: rgba(255, 255, 255, .09);
+    --line-2: rgba(255, 255, 255, .2);
+    --silver: linear-gradient(175deg, #ffffff 0%, #c9c9c9 38%, #7a7a7a 100%);
+    --frame: 32px;
+    --radius: 18px;
+    --ease: cubic-bezier(.2, .7, .1, 1);
+    --display: 'Montserrat', system-ui, sans-serif;
+    --body: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; background: var(--bg); }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); font-weight: 300; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  ::selection { background: #fff; color: #000; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  ul { list-style: none; }
+
+  /* film grain — subtle, fixed, makes flat blacks feel photographic */
+  body::after {
+    content: ''; position: fixed; inset: -50%; z-index: 100; pointer-events: none; opacity: .055;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain 1.2s steps(6) infinite;
+  }
+  @keyframes grain { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -3%); } 60% { transform: translate(-2%, -1%); } 80% { transform: translate(3%, 3%); } }
+
+  .caps { font-family: var(--display); font-weight: 500; font-size: 10.5px; letter-spacing: .3em; text-transform: uppercase; }
+  .silver { background: var(--silver); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* buttons: hairline glass, fill white on hover */
+  .btn {
+    position: relative; display: inline-flex; align-items: center; gap: 14px;
+    padding: 17px 26px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .025);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    transition: background .5s var(--ease), color .5s var(--ease), border-color .5s var(--ease);
+  }
+  .btn:hover { background: #fff; color: #000; border-color: #fff; }
+  .btn .arrow { width: 22px; height: 1px; background: currentColor; position: relative; transition: width .5s var(--ease); }
+  .btn .arrow::after { content: ''; position: absolute; right: 0; top: -3px; width: 7px; height: 7px; border-top: 1px solid currentColor; border-right: 1px solid currentColor; transform: rotate(45deg); }
+  .btn:hover .arrow { width: 34px; }
+  .btn.solid { background: #e9e9e9; color: #000; border-color: #e9e9e9; }
+  .btn.solid:hover { background: #fff; }
+
+  /* logo */
+  .logo { display: inline-flex; align-items: center; gap: 16px; font-family: var(--display); font-weight: 500; font-size: 17px; letter-spacing: .42em; color: #fff; }
+  .logo .n2 { letter-spacing: 0; }
+  .logo sup { font-size: .52em; margin-left: .1em; vertical-align: .95em; line-height: 0; }
+  .logo .mark { width: 30px; height: 30px; flex: none; }
+
+  /* ---------- LOADER ---------- */
+  .loader { position: fixed; inset: 0; z-index: 90; background: #000; display: grid; place-items: center; transition: opacity 1s var(--ease) .2s, visibility 0s 1.2s; }
+  .loader svg { width: 84px; height: 84px; }
+  .loader path { stroke-dasharray: 140; stroke-dashoffset: 140; animation: draw 1.4s var(--ease) forwards; }
+  .loader text { opacity: 0; animation: fade .6s ease 1s forwards; }
+  .loaded .loader { opacity: 0; visibility: hidden; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes fade { to { opacity: 1; } }
+
+  /* ---------- HERO ---------- */
+  .hero { position: relative; height: 100vh; height: 100svh; min-height: 640px; padding: var(--frame); }
+  #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .no-webgl .hero { background: radial-gradient(60% 50% at 50% 55%, #3a3a3a, #000 70%); }
+  .hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, transparent 18%, transparent 55%, rgba(0,0,0,.75) 100%); }
+  .frame { position: relative; z-index: 2; height: 100%; border: 1px solid var(--line); border-radius: var(--radius); display: grid; grid-template-rows: auto 1fr auto; }
+
+  header.top { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 0 28px; }
+  nav.links { display: flex; align-items: center; gap: 40px; }
+  nav.links ul { display: flex; gap: 30px; }
+  nav.links ul a { position: relative; color: #cfcfcf; transition: color .3s; }
+  nav.links ul a::after { content: ''; position: absolute; left: 0; right: 100%; bottom: -6px; height: 1px; background: #fff; transition: right .5s var(--ease); }
+  nav.links ul a:hover { color: #fff; }
+  nav.links ul a:hover::after { right: .3em; }
+  .actions { display: flex; }
+  .actions .btn { padding: 16px 24px; }
+  .actions .login { border-radius: 10px 0 0 10px; border-right: 0; }
+  .actions .menu { border-radius: 0 10px 10px 0; }
+  .dots { display: grid; grid-template-columns: repeat(2, 3px); gap: 3px; }
+  .dots i { width: 3px; height: 3px; background: currentColor; }
+
+  .hero-mid { position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 46px; }
+  .sections { position: absolute; left: 28px; top: 42%; display: grid; gap: 16px; }
+  .sections li { display: flex; align-items: center; gap: 12px; color: var(--dim); transition: color .8s; }
+  .sections li::before { content: ''; width: 14px; height: 1px; background: currentColor; transition: width .8s var(--ease); }
+  .sections li.on { color: #fff; }
+  .sections li.on::before { width: 28px; }
+
+  .copy { text-align: center; max-width: 640px; }
+  .copy .eyebrow { color: #a3a3a3; margin-bottom: 22px; }
+  .copy h1 { font-family: var(--display); font-weight: 300; font-size: clamp(26px, 3.2vw, 46px); line-height: 1.22; letter-spacing: .16em; text-transform: uppercase; }
+  .copy p { margin: 22px auto 0; max-width: 440px; color: #9d9d9d; font-size: 15px; line-height: 1.75; }
+  .copy .btn { margin-top: 32px; }
+
+  .bar { display: grid; grid-template-columns: auto 1fr auto; border-top: 1px solid var(--line); }
+  .bar > * { display: flex; align-items: center; gap: 12px; padding: 18px 28px; color: #bdbdbd; transition: color .3s; }
+  .bar > :hover { color: #fff; }
+  .bar > :first-child { border-right: 1px solid var(--line); }
+  .bar > :last-child { border-left: 1px solid var(--line); }
+  .bar .scroll { justify-content: center; }
+  .bar .scroll i { width: 1px; height: 22px; background: linear-gradient(#fff, transparent); animation: drip 2s var(--ease) infinite; transform-origin: top; }
+  @keyframes drip { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
+  .eq { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+  .eq i { width: 2px; height: 3px; background: currentColor; transition: height .3s; }
+  [aria-pressed="true"] .eq i { animation: eq 1s ease-in-out infinite alternate; }
+  [aria-pressed="true"] .eq i:nth-child(2) { animation-delay: -.4s; } [aria-pressed="true"] .eq i:nth-child(3) { animation-delay: -.7s; }
+  @keyframes eq { from { height: 3px; } to { height: 12px; } }
+  .bar svg { width: 17px; height: 17px; }
+
+  /* hero entrance */
+  .rise { opacity: 0; transform: translateY(18px); transition: opacity 1.4s var(--ease), transform 1.4s var(--ease); }
+  .loaded .rise { opacity: 1; transform: none; }
+  .loaded .rise.d1 { transition-delay: .9s; } .loaded .rise.d2 { transition-delay: 1.05s; } .loaded .rise.d3 { transition-delay: 1.2s; } .loaded .rise.d4 { transition-delay: 1.35s; }
+
+  /* ---------- MENU OVERLAY ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, .94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: grid; place-items: center; opacity: 0; visibility: hidden; transition: opacity .6s var(--ease), visibility 0s .6s; }
+  .overlay.open { opacity: 1; visibility: visible; transition: opacity .6s var(--ease); }
+  .overlay ul { text-align: center; display: grid; gap: 10px; }
+  .overlay li { overflow: hidden; }
+  .overlay a { display: inline-block; font-family: var(--display); font-weight: 200; font-size: clamp(32px, 5.6vw, 72px); letter-spacing: .12em; text-transform: uppercase; color: #6d6d6d; transform: translateY(100%); transition: transform .9s var(--ease), color .3s; }
+  .overlay.open a { transform: none; }
+  .overlay li:nth-child(2) a { transition-delay: .05s; } .overlay li:nth-child(3) a { transition-delay: .1s; } .overlay li:nth-child(4) a { transition-delay: .15s; } .overlay li:nth-child(5) a { transition-delay: .2s; }
+  .overlay a:hover { color: #fff; }
+  .overlay .close { position: absolute; top: calc(var(--frame) + 14px); right: calc(var(--frame) + 14px); border-radius: 10px; }
+
+  /* ---------- SECTIONS ---------- */
+  .wrap { padding: 0 var(--frame); }
+  section.block { border: 1px solid var(--line); border-radius: var(--radius); margin-top: 18px; }
+
+  .statement { padding: clamp(80px, 12vw, 170px) clamp(24px, 8vw, 140px); display: grid; grid-template-columns: 220px 1fr; gap: 40px; }
+  .statement .caps { color: var(--muted); padding-top: 14px; }
+  .statement p { font-family: var(--display); font-weight: 300; font-size: clamp(22px, 2.6vw, 38px); line-height: 1.45; letter-spacing: .01em; color: #5e5e5e; }
+  .statement p em { font-style: normal; color: #f0f0f0; }
+
+  .projects { padding: clamp(56px, 7vw, 100px) clamp(20px, 4vw, 56px); background: linear-gradient(180deg, #111 0%, #000 40%); }
+  .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; flex-wrap: wrap; margin-bottom: 56px; }
+  .head .caps { color: var(--muted); }
+  .head h2 { font-family: var(--display); font-weight: 300; font-size: clamp(34px, 4.6vw, 68px); letter-spacing: .1em; text-transform: uppercase; margin-top: 16px; line-height: 1.05; }
+  .filters { display: flex; gap: 30px; flex-wrap: wrap; position: relative; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .filters button { color: var(--dim); transition: color .4s; }
+  .filters button:hover, .filters button.on { color: #fff; }
+  .filters .ink { position: absolute; bottom: -1px; height: 1px; background: #fff; transition: left .6s var(--ease), width .6s var(--ease); }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 56px 28px; }
+  .card { display: block; }
+  .card.hide { display: none; }
+  .img { position: relative; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 4px; background: radial-gradient(90% 70% at 50% 100%, #262626 0%, #0d0d0d 55%, #050505 100%); }
+  .img > svg, .img > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1.6s var(--ease); }
+  .card:hover .img > svg, .card:hover .img > img { transform: scale(1.045); }
+  .img .num { position: absolute; top: 18px; right: 20px; font-family: var(--display); font-weight: 200; font-size: 15px; letter-spacing: .2em; color: #8a8a8a; }
+  .img .status { position: absolute; top: 20px; left: 20px; display: flex; align-items: center; gap: 10px; color: #d6d6d6; }
+  .img .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+  .img .status.completed { color: #8a8a8a; }
+  .img .status.upcoming::before { background: transparent; border: 1px solid currentColor; box-shadow: none; }
+  .img .view { position: absolute; left: 20px; right: 20px; bottom: 20px; display: flex; justify-content: space-between; align-items: center; color: #fff; opacity: 0; transform: translateY(10px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+  .card:hover .img .view { opacity: 1; transform: none; }
+  .card .info { padding-top: 22px; display: grid; gap: 8px; }
+  .card h3 { font-family: var(--display); font-weight: 400; font-size: 17px; letter-spacing: .22em; text-transform: uppercase; }
+  .card .loc { color: var(--muted); font-size: 14px; }
+  .card dl { display: flex; gap: 28px; margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .card dt { color: var(--dim); font-size: 9.5px; margin-bottom: 6px; }
+  .card dd { font-size: 14px; color: #cfcfcf; }
+  .card .rera { margin-top: 4px; color: #4a4a4a; font-size: 11px; letter-spacing: .04em; }
+
+  .cta { padding: clamp(64px, 9vw, 130px) clamp(24px, 6vw, 90px); display: flex; justify-content: space-between; align-items: center; gap: 40px; flex-wrap: wrap; background: radial-gradient(70% 120% at 100% 100%, rgba(255,255,255,.1), transparent 60%), #000; }
+  .cta h2 { font-family: var(--display); font-weight: 300; font-size: clamp(26px, 3.4vw, 50px); letter-spacing: .1em; text-transform: uppercase; line-height: 1.2; max-width: 760px; }
+
+  footer { border: 1px solid var(--line); border-radius: var(--radius); margin: 18px 0 var(--frame); padding: 64px clamp(20px, 4vw, 56px) 28px; }
+  .cols { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 40px; }
+  .cols p { color: var(--muted); font-size: 14px; line-height: 1.8; margin-top: 22px; max-width: 320px; }
+  .cols h4 { color: var(--dim); margin-bottom: 18px; font-weight: 500; }
+  .cols ul { display: grid; gap: 12px; font-size: 14px; color: #bdbdbd; }
+  .cols ul a { transition: color .3s; } .cols ul a:hover { color: #fff; }
+  .legal { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--dim); font-size: 9.5px; }
+
+  /* reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 1.2s var(--ease), transform 1.2s var(--ease); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 1080px) {
+    nav.links ul { display: none; }
+    .sections { display: none; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .cols { grid-template-columns: 1fr 1fr; }
+    .statement { grid-template-columns: 1fr; gap: 24px; }
+  }
+  @media (max-width: 640px) {
+    :root { --frame: 10px; --radius: 14px; }
+    header.top { padding: 10px 10px 0 16px; }
+    .logo { font-size: 13px; letter-spacing: .32em; gap: 12px; }
+    .logo .mark { width: 24px; height: 24px; }
+    .actions .login { display: none; }
+    .actions .menu { border-radius: 10px; padding: 14px 16px; }
+    .copy { padding: 0 18px; }
+    .copy h1 { letter-spacing: .12em; }
+    .copy p { font-size: 14px; }
+    .bar > * { padding: 14px 16px; }
+    .bar .label { display: none; }
+    .grid, .cols { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .rise { opacity: 1; transform: none; transition: none; }
+    body::after { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loader" aria-hidden="true">
+  <svg viewBox="0 0 64 64"><defs><linearGradient id="lg" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0e0e0"/><stop offset="1" stop-color="#555"/></linearGradient></defs><path d="M14 54V14l30 40V14" fill="none" stroke="url(#lg)" stroke-width="1.6"/><text x="47" y="17" font-family="Montserrat, sans-serif" font-weight="300" font-size="14" fill="#bdbdbd">2</text></svg>
+</div>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top">
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="frame">
+    <header class="top rise">
+      <a class="logo" href="#top" aria-label="North N² home">
+        <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ng" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfcfcf"/><stop offset="1" stop-color="#555"/></linearGradient></defs><path d="M14 54V14l30 40V14" fill="none" stroke="url(#ng)" stroke-width="2.4"/><text x="47" y="17" font-family="Montserrat, sans-serif" font-weight="400" font-size="15" fill="#b5b5b5">2</text></svg>
+        NORTH <span class="n2">N<sup>2</sup></span>
+      </a>
+      <nav class="links" aria-label="Primary">
+        <ul class="caps">
+          <li><a href="#intro">About</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#careers">Careers</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="#news">News</a></li>
+        </ul>
+        <div class="actions">
+          <a class="btn login caps" href="#login">Login</a>
+          <button class="btn solid menu caps" id="menuBtn" aria-expanded="false" aria-controls="overlay"><span class="dots"><i></i><i></i><i></i><i></i></span>Menu</button>
+        </div>
+      </nav>
+    </header>
+
+    <div class="hero-mid">
+      <ul class="sections caps rise d4" id="words">
+        <li class="on">Vision</li><li>Design</li><li>Craft</li><li>Community</li><li>Trust</li><li>Legacy</li>
+      </ul>
+      <div class="copy">
+        <div class="caps eyebrow rise d1">North N² · Developers</div>
+        <h1 class="silver rise d2">Addresses built<br>for what's next</h1>
+        <p class="rise d3">Homes and workplaces shaped around light, space and the way people actually live, considered from the first sketch to the day you receive the keys.</p>
+        <a class="btn caps rise d4" href="#projects">Explore our projects <span class="arrow"></span></a>
+      </div>
+    </div>
+
+    <div class="bar caps rise d4">
+      <button id="sound" aria-pressed="false"><span class="eq"><i></i><i></i><i></i></span><span class="label">Sound off</span></button>
+      <a class="scroll" href="#intro"><i></i>Scroll to explore</a>
+      <a href="#contact"><span class="label">Chat with us</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="Menu">
+  <button class="btn solid caps close" id="closeBtn">Close</button>
+  <ul>
+    <li><a href="#intro">About</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#careers">Careers</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#news">News</a></li>
+  </ul>
+</div>
+
+<main class="wrap">
+  <!-- ================= STATEMENT ================= -->
+  <section class="block statement" id="intro">
+    <div class="caps reveal">About North N²</div>
+    <p class="reveal">We believe a home is measured in <em>light</em>, <em>proportion</em> and <em>quiet</em>, not just square feet. Every North N² address is designed to age gracefully and to feel <em>effortless to live in</em>.</p>
+  </section>
+
+  <!-- ================= PROJECTS ================= -->
+  <section class="block projects" id="projects">
+    <div class="head reveal">
+      <div>
+        <div class="caps">Portfolio — <span id="count"></span></div>
+        <h2 class="silver">Our projects</h2>
+      </div>
+      <div class="filters caps" role="tablist" aria-label="Filter projects">
+        <button class="on" data-f="all" role="tab" aria-selected="true">All</button>
+        <button data-f="ongoing" role="tab" aria-selected="false">Ongoing</button>
+        <button data-f="completed" role="tab" aria-selected="false">Completed</button>
+        <button data-f="upcoming" role="tab" aria-selected="false">Upcoming</button>
+        <span class="ink"></span>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <!-- ================= CTA ================= -->
+  <section class="block cta" id="contact">
+    <h2 class="silver reveal">Find your place<br>at North N²</h2>
+    <a class="btn solid caps reveal" href="tel:+910000000000">Book a site visit <span class="arrow"></span></a>
+  </section>
+
+  <footer>
+    <div class="cols">
+      <div>
+        <a class="logo" href="#top"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 54V14l30 40V14" fill="none" stroke="url(#ng)" stroke-width="2.4"/><text x="47" y="17" font-family="Montserrat, sans-serif" font-weight="400" font-size="15" fill="#b5b5b5">2</text></svg>NORTH <span class="n2">N<sup>2</sup></span></a>
+        <p>Residential and commercial developments designed around light, space and community.</p>
+      </div>
+      <div>
+        <h4 class="caps">Explore</h4>
+        <ul><li><a href="#projects">Projects</a></li><li><a href="#intro">About us</a></li><li><a href="#careers">Careers</a></li><li><a href="#news">News</a></li></ul>
+      </div>
+      <div>
+        <h4 class="caps">Contact</h4>
+        <!-- REPLACE with real contact details -->
+        <ul><li><a href="tel:+910000000000">+91 00000 00000</a></li><li><a href="mailto:hello@northn2.in">hello@northn2.in</a></li><li>Sales office address, City</li></ul>
+      </div>
+      <div>
+        <h4 class="caps">Follow</h4>
+        <ul><li><a href="#">Instagram</a></li><li><a href="#">LinkedIn</a></li><li><a href="#">YouTube</a></li></ul>
+      </div>
+    </div>
+    <div class="legal caps">
+      <span>© <span id="yr"></span> North N². All rights reserved.</span>
+      <span>Privacy · Terms · RERA disclosures</span>
+    </div>
+  </footer>
+</main>
+
+<script>
+/* ---------- PROJECT DATA — REPLACE with real North N² projects ----------
+   To use a real photo, add  image: 'assets/projects/<file>.jpg'  to a project. */
+const PROJECTS = [
+  { name: 'North N² One',     location: 'Location, City', type: '2 & 3 BHK',       size: '850–1,450 sq ft',   status: 'ongoing',   rera: 'P00000000001', form: 'twin' },
+  { name: 'North N² Heights', location: 'Location, City', type: '3 & 4 BHK',       size: '1,400–2,200 sq ft', status: 'upcoming',  rera: 'Applied',      form: 'spire' },
+  { name: 'North N² Park',    location: 'Location, City', type: '1 & 2 BHK',       size: '520–980 sq ft',     status: 'completed', rera: 'P00000000002', form: 'trio' },
+  { name: 'North N² Avenue',  location: 'Location, City', type: 'Retail & Office', size: '400–6,000 sq ft',   status: 'ongoing',   rera: 'P00000000003', form: 'podium' },
+  { name: 'North N² Grove',   location: 'Location, City', type: 'Villas',          size: '2,800–4,000 sq ft', status: 'upcoming',  rera: 'Applied',      form: 'villas' },
+  { name: 'North N² Central', location: 'Location, City', type: '2 BHK',           size: '700–900 sq ft',     status: 'completed', rera: 'P00000000004', form: 'crown' },
+];
+
+/* Placeholder art: hairline architectural elevations per building form, with a mirrored reflection. */
+function elevation(form, i) {
+  const W = 400, H = 500, G = 400; // G = ground line
+  const towers = {
+    twin:   [[110, 110, 300], [235, 90, 230]],
+    spire:  [[155, 90, 340], [175, 50, 40, 340]],
+    trio:   [[60, 90, 180], [165, 90, 250], [270, 90, 160]],
+    podium: [[50, 300, 70], [140, 130, 240, 70]],
+    villas: [[30, 160, 70], [210, 160, 80], [60, 100, 46, 70], [240, 100, 50, 80]],
+    crown:  [[130, 140, 270], [155, 90, 30, 270], [90, 220, 60]],
+  }[form];
+  let s = '';
+  for (const [x, w, h, lift = 0] of towers) {
+    const y = G - lift - h;
+    s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#f${i})" stroke="url(#s${i})" stroke-width=".8"/>`;
+    const floors = Math.max(2, Math.round(h / 15));
+    for (let k = 1; k < floors; k++) { const fy = (y + k * h / floors).toFixed(1); s += `<line x1="${x}" y1="${fy}" x2="${x + w}" y2="${fy}" stroke="#fff" stroke-opacity="${k % 4 ? .07 : .16}" stroke-width=".6"/>`; }
+    const bays = Math.max(2, Math.round(w / 22));
+    for (let k = 1; k < bays; k++) { const bx = (x + k * w / bays).toFixed(1); s += `<line x1="${bx}" y1="${y}" x2="${bx}" y2="${y + h}" stroke="#fff" stroke-opacity=".05" stroke-width=".6"/>`; }
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="s${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity=".2"/></linearGradient>
+      <linearGradient id="f${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".07"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <linearGradient id="m${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <mask id="k${i}"><rect x="0" y="${G}" width="${W}" height="${H - G}" fill="url(#m${i})"/></mask>
+    </defs>
+    <circle cx="${300 - i * 23}" cy="${100 + i * 9}" r="44" fill="none" stroke="#fff" stroke-opacity=".09"/>
+    <g>${s}</g>
+    <g mask="url(#k${i})"><g transform="translate(0 ${2 * G}) scale(1 -1)">${s}</g></g>
+    <line x1="0" y1="${G}" x2="${W}" y2="${G}" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/>
+  </svg>`;
+}
+
+const grid = document.getElementById('grid');
+grid.innerHTML = PROJECTS.map((p, i) => `
+  <a class="card reveal" href="#contact" data-status="${p.status}">
+    <div class="img">
+      ${p.image ? `<img src="${p.image}" alt="${p.name}" loading="lazy">` : elevation(p.form, i)}
+      <span class="caps status ${p.status}">${p.status}</span>
+      <span class="num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="caps view">View project <span>→</span></span>
+    </div>
+    <div class="info">
+      <h3>${p.name}</h3>
+      <div class="loc">${p.location}</div>
+      <dl>
+        <div><dt class="caps">Configuration</dt><dd>${p.type}</dd></div>
+        <div><dt class="caps">Area</dt><dd>${p.size}</dd></div>
+      </dl>
+      <div class="rera">RERA No. ${p.rera}</div>
+    </div>
+  </a>`).join('');
+document.getElementById('count').textContent = String(PROJECTS.length).padStart(2, '0') + ' Projects';
+
+/* ---------- filters with sliding underline ---------- */
+const filters = document.querySelectorAll('.filters button'), ink = document.querySelector('.filters .ink');
+const moveInk = (b) => { ink.style.left = b.offsetLeft + 'px'; ink.style.width = b.offsetWidth - 4 + 'px'; };
+filters.forEach(b => b.addEventListener('click', () => {
+  filters.forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
+  moveInk(b);
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('hide', b.dataset.f !== 'all' && c.dataset.status !== b.dataset.f));
+}));
+addEventListener('resize', () => moveInk(document.querySelector('.filters .on')));
+document.fonts.ready.then(() => moveInk(document.querySelector('.filters .on')));
+
+/* ---------- menu ---------- */
+const overlay = document.getElementById('overlay'), menuBtn = document.getElementById('menuBtn');
+const setMenu = open => { overlay.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open); document.body.style.overflow = open ? 'hidden' : ''; };
+menuBtn.onclick = () => setMenu(true);
+document.getElementById('closeBtn').onclick = () => setMenu(false);
+overlay.querySelectorAll('a').forEach(a => a.onclick = () => setMenu(false));
+addEventListener('keydown', e => e.key === 'Escape' && setMenu(false));
+
+/* ---------- rotating section words ---------- */
+const words = [...document.querySelectorAll('#words li')];
+let wi = 0;
+setInterval(() => { words[wi].classList.remove('on'); wi = (wi + 1) % words.length; words[wi].classList.add('on'); }, 2600);
+
+/* ---------- reveal on scroll ---------- */
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(el); });
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+/* ---------- loader ---------- */
+const done = () => document.documentElement.classList.add('loaded');
+// Lift the curtain once the page is parsed and the logo has drawn — never wait on the 3D scene.
+setTimeout(done, 1700);
+
+/* ---------- ambient sound (synthesised pad, no audio file) ---------- */
+let audio;
+document.getElementById('sound').onclick = function () {
+  const on = this.getAttribute('aria-pressed') !== 'true';
+  this.setAttribute('aria-pressed', on);
+  this.querySelector('.label').textContent = on ? 'Sound on' : 'Sound off';
+  if (!audio) {
+    const ctx = new AudioContext(), master = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 900; master.gain.value = 0; lp.connect(master).connect(ctx.destination);
+    [65.4, 98, 130.8, 196].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+      o.type = i % 2 ? 'triangle' : 'sine'; o.frequency.value = f; o.detune.value = (i - 1.5) * 4;
+      g.gain.value = .22 / (i + 1); lfo.frequency.value = .05 + i * .03; lg.gain.value = .08 / (i + 1);
+      lfo.connect(lg).connect(g.gain); o.connect(g).connect(lp); o.start(); lfo.start();
+    });
+    audio = { ctx, master };
+  }
+  audio.ctx.resume();
+  audio.master.gain.cancelScheduledValues(audio.ctx.currentTime);
+  audio.master.gain.linearRampToValueAtTime(on ? .09 : 0, audio.ctx.currentTime + 1.2);
+};
+</script>
+<script src="assets/hero.js" defer></script>
+</body>
+</html>
