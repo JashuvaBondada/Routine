@@ -1,0 +1,12 @@
+{
+  "name": "north-n2-site",
+  "private": true,
+  "description": "North N² website. Static: open index.html. Rebuild the 3D hero bundle with `npm run build`.",
+  "scripts": {
+    "build": "esbuild src/hero.js --bundle --minify --format=iife --target=es2020 --outfile=assets/hero.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "three": "0.170.0"
+  }
+}
