@@ -1,0 +1,13 @@
+# Media is delivered separately (licensed music, large renders)
+project/music/
+project/backgrounds/
+project/titles/
+project/fx/
+*.wav
+*.mp3
+*.mp4
+*.mov
+*.npy
+__pycache__/
+fonts/
+assets/
