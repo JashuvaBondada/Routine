@@ -1,5 +1,15 @@
 # Number count-up for Premiere Pro
 
+## Count Up panel (recommended)
+
+`CountUp-Premiere-Panel.zip` is an installable Premiere Pro panel. Type any
+text and click **Add to timeline**: numbers in it count up, and text with no
+numbers gets a letter-roll or typewriter effect. The result is placed at the
+playhead with a transparent background. Unzip it and see
+`HOW TO INSTALL.txt`. Source: `plugin/`.
+
+## Background
+
 Premiere's own effect presets (`.prfpset`) can only store keyframes for effect
 settings. They can't change what a text layer says over time, so a counting
 number can't be saved as a `.prfpset`. This folder gives you two ways to get

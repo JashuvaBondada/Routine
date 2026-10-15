@@ -1,0 +1,41 @@
+COUNT UP - panel for Adobe Premiere Pro (2020 and newer)
+=========================================================
+
+Type any text, and it animates onto your timeline:
+  - Numbers count up ("10,000", "$1.5", "250% growth", "5 years, 300 clients").
+    Text around the numbers stays still.
+  - Text with no numbers rolls: each letter spins through random letters, then
+    they land one by one. You can also choose Typewriter.
+
+INSTALL
+  Windows: double-click "Install on Windows.bat"
+  Mac:     right-click "Install on Mac.command" > Open (the first time macOS asks you to confirm)
+  Then restart Premiere Pro.
+
+USE
+  1. Open a sequence and put the playhead where the number should start.
+  2. Window > Extensions > Count Up.
+  3. Type your text, adjust the style (the preview updates as you type), click
+     "Add to timeline".
+  The animation is rendered as a transparent PNG sequence that matches your
+  sequence's size and frame rate. It goes into a "Count Up" bin and onto the
+  first free video track above V1 at the playhead. Move, scale and add
+  effects like any other clip.
+  Rendered frames are saved in Documents/Count Up Renders. Delete old folders
+  there when you no longer need them (the clips in Premiere point to them).
+
+MANUAL INSTALL (if the installer is blocked)
+  1. Copy the "com.countup.panel" folder to:
+       Windows: %APPDATA%\Adobe\CEP\extensions\
+       Mac:     ~/Library/Application Support/Adobe/CEP/extensions/
+  2. Allow unsigned panels:
+       Windows (Command Prompt):
+         reg add HKCU\Software\Adobe\CSXS.12 /v PlayerDebugMode /t REG_SZ /d 1 /f
+         (repeat with CSXS.11 and CSXS.13)
+       Mac (Terminal):
+         defaults write com.adobe.CSXS.12 PlayerDebugMode 1
+         (repeat with com.adobe.CSXS.11 and com.adobe.CSXS.13)
+  3. Restart Premiere Pro.
+
+UNINSTALL
+  Delete the com.countup.panel folder from the extensions folder above.
