@@ -13,8 +13,8 @@ def cut(args):
     dur = c["end"] - c["start"]; n = round(dur * FPS)
     vf = (f"crop={W}:{H}:0:{(1152 - H) // 2},setpts=(PTS-STARTPTS)/{c['speed']},"
           f"fps={FPS},tpad=stop_mode=clone:stop_duration=1")
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{c['src_in']:.4f}", "-i", SRC,
-                    "-t", f"{c['src_len'] + 0.2:.4f}", "-vf", vf, "-frames:v", str(n),
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{c['src_in']:.4f}",
+                    "-t", f"{c['src_len'] + 0.2:.4f}", "-i", SRC, "-vf", vf, "-frames:v", str(n),
                     "-c:v", "libx264", "-crf", "16", "-preset", "fast", "-g", "6",
                     "-pix_fmt", "yuv420p", os.path.join(OUT, name(i, c))], check=True)
 

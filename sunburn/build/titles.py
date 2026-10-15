@@ -79,6 +79,14 @@ def glow(canvas, strength=0.6, radius=18, tint=None):
     canvas[..., :3] = (canvas[..., :3] * a[..., None] + col * na[..., None]) / np.maximum(out_a, 1e-6)[..., None]
     canvas[..., 3] = out_a
 
+def shade(canvas, strength=0.5, radius=36):
+    """Add a soft dark halo underneath existing content (behind the text)."""
+    a = canvas[..., 3]
+    g = np.clip(cv2.GaussianBlur(a, (0, 0), radius) * 2.2, 0, 1) * strength
+    out_a = a + g * (1 - a)
+    canvas[..., :3] = canvas[..., :3] * (a / np.maximum(out_a, 1e-6))[..., None]
+    canvas[..., 3] = out_a
+
 def rgb_split(canvas, px):
     if px < 1: return
     px = int(px)
@@ -109,6 +117,7 @@ def render(T, t):
             place(c, sp[0], cx, cy - 34 * T.get("scale", 1), drift, a, blur)
             place(c, sp[1], cx, cy + 34 * T.get("scale", 1), drift, a2, blur)
         glow(c, 0.35, 10, (1.0, 0.8, 0.3))
+        shade(c, 0.55, 38)              # soft dark halo keeps gold legible on bright shots
     elif k in ("slam", "logo", "name"):
         punch = 1.0 + 0.22 * (1 - ease_out(lt / 0.18, 4))
         push = 1.0 + (0.06 if k != "slam" else 0.03) * (lt / dur)

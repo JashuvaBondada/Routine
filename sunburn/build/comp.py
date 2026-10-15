@@ -47,7 +47,7 @@ def main(out):
     starts = [round(c["start"] * FPS) for c in EDL]
     enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
                             "-r", str(FPS), "-i", "-", "-i", os.path.join(ROOT, "build", "mix_preview.wav"),
-                            "-vf", "noise=c0s=7:c1s=3:c2s=3:allf=t", "-c:v", "libx264", "-crf", "15",
+                            "-vf", "noise=c0s=7:c1s=3:c2s=3:allf=t", "-c:v", "libx264", "-crf", "18",
                             "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "320k",
                             "-movflags", "+faststart", "-shortest", out], stdin=subprocess.PIPE)
     src = footage_stream()
