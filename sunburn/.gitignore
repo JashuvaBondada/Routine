@@ -18,3 +18,4 @@ project/reference/
 project/grade/
 build/concat.txt
 build/edl.json
+dist/
