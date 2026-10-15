@@ -91,19 +91,20 @@ SFX = [
 # --- Titles (one overlay clip each) -----------------------------------------
 # kind: reveal = tracking-in fade; slam = punch-in with RGB split; logo = PNG
 TITLES = [
-    dict(id="T01_golden_era",  start=0.30, end=2.40, kind="reveal", lines=["THE GOLDEN ERA OF EDM."]),
-    dict(id="T02_big_stage",   start=2.40, end=4.20, kind="reveal", lines=["BACK ON THE BIG STAGE."]),
-    dict(id="T03_4_headliners",start=4.20, end=6.00, kind="slam",   lines=["4 HEADLINERS. 2 DAYS."]),
-    dict(id="T04_ingrosso",    start=6.00, end=10.00, kind="logo",  logo="SEB LOGO MAIN WHITE.png"),
+    # sub = reference style: small gold caps, wide tracking, soft fade
+    dict(id="T01_golden_era",  start=0.30, end=2.40, kind="sub",  lines=["THE GOLDEN ERA OF EDM."]),
+    dict(id="T02_big_stage",   start=2.40, end=4.20, kind="sub",  lines=["BACK ON THE BIG STAGE."]),
+    dict(id="T03_4_headliners",start=4.20, end=6.00, kind="slam", lines=["4 HEADLINERS. 2 DAYS."]),
+    dict(id="T04_ingrosso",    start=6.00, end=10.00, kind="logo", logo="SEB LOGO MAIN WHITE.png"),
     dict(id="T05_chainsmokers",start=11.00, end=15.40, kind="logo", logo="logo_white_updated.png"),
-    dict(id="T06_one_city",    start=15.40, end=17.40, kind="reveal", lines=["ONE CITY."]),
-    dict(id="T07_massive_wknd",start=17.40, end=20.00, kind="slam",   lines=["ONE MASSIVE WEEKEND."]),
-    dict(id="T08_derulo",      start=20.00, end=24.80, kind="name",   lines=["JASON DERULO"]),
-    dict(id="T09_dates_venue", start=24.80, end=30.00, kind="reveal2",
+    dict(id="T06_one_city",    start=15.40, end=17.40, kind="sub",  lines=["ONE CITY."]),
+    dict(id="T07_massive_wknd",start=17.40, end=20.00, kind="slam", lines=["ONE MASSIVE WEEKEND."]),
+    dict(id="T08_derulo",      start=20.00, end=24.80, kind="name", lines=["JASON DERULO"]),
+    dict(id="T09_dates_venue", start=24.80, end=29.40, kind="sub",
          lines=["18 – 19 DECEMBER", "MAHALAXMI RACECOURSE, MUMBAI"]),
-    dict(id="T10_sunburn_2026",start=30.00, end=33.00, kind="reveal", lines=["SUNBURN FESTIVAL 2026"]),
-    dict(id="T11_djsnake",     start=33.00, end=36.40, kind="logo",  logo="Asset 1.png", invert=True),
-    dict(id="T12_tickets",     start=36.40, end=38.00, kind="reveal2",
+    dict(id="T10_sunburn_2026",start=30.00, end=33.00, kind="sub",  lines=["SUNBURN FESTIVAL 2026"], scale=1.5),
+    dict(id="T11_djsnake",     start=33.00, end=36.40, kind="logo", logo="Asset 1.png", invert=True),
+    dict(id="T12_tickets",     start=36.40, end=38.00, kind="sub",
          lines=["TICKETS LIVE EXCLUSIVELY ON", "BOOKMYSHOW"]),
     dict(id="T13_end_slate",   start=38.00, end=40.00, kind="slate", logo="ILU26_ILU26.png"),
 ]

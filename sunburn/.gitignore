@@ -11,3 +11,10 @@ project/fx/
 __pycache__/
 fonts/
 assets/
+project/footage/
+project/sfx/
+project/logos/
+project/reference/
+project/grade/
+build/concat.txt
+build/edl.json
