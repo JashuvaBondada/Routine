@@ -167,10 +167,13 @@
         var L = comp.layers.addShape(); L.name = name;
         var v = L.property("ADBE Root Vectors Group").addProperty("ADBE Vector Group").property("ADBE Vectors Group");
         makePath(v);
-        var s = v.addProperty("ADBE Vector Graphic - Stroke");
+        v.addProperty("ADBE Vector Graphic - Stroke");
+        v.addProperty("ADBE Vector Filter - Trim");
+        // Adding a property invalidates earlier references to its siblings, so look them up afresh.
+        var s = v.property("ADBE Vector Graphic - Stroke");
         s.property("ADBE Vector Stroke Color").setValue(color);
         s.property("ADBE Vector Stroke Width").setValue(width);
-        return { layer: L, stroke: s, trim: v.addProperty("ADBE Vector Filter - Trim") };
+        return { layer: L, stroke: s, trim: v.property("ADBE Vector Filter - Trim") };
     }
 
     // ---------------- main ----------------
@@ -201,11 +204,13 @@
         var redBox = need(F.one(LAYERS.redBox), "red diagonal box");
 
         // 1. Black background, then the poster's own background and the person.
+        step = "black background and person";
         comp.layers.addSolid([0, 0, 0], "Black BG", W, H, comp.pixelAspect, total).moveToEnd();
         if (bg) fadeIn(bg.layer, 0.4, 1.5);
         if (person) { fadeIn(person, 0.4, 1.5); scaleKeys(person, [0.4, 2.4, total], [110, 100, 100 + 2.5 * total / ANIM_END]); }
 
         // 2. Red frame: thin line draws around, then thickens.
+        step = "red frame stroke";
         var fw = Math.round(W * 22 / 1080);
         if (border) border.layer.enabled = false;
         var fr = strokeShape(comp, "Frame Stroke", function (v) {
@@ -216,6 +221,7 @@
         keys(fr.stroke.property("ADBE Vector Stroke Width"), [2.3, 2.8], [4, fw]);
 
         // 3. Diagonal line draws, then the red box wipes in.
+        step = "diagonal line and red box";
         var ya = H * 1489 / 1920, yb = H * (1489 - 0.792 * 1080) / 1920;
         var dl = strokeShape(comp, "Diagonal Line", function (v) {
             var sh = new Shape(); sh.vertices = [[-W / 2, ya - H / 2], [W / 2, yb - H / 2]]; sh.closed = false;
@@ -230,10 +236,12 @@
         }
 
         // 4. Location rises, date pops.
+        step = "location and date";
         if (loc) { fadeIn(loc, 3.4, 3.8); slide(loc, 3.4, 4.1, H * 0.035); }
         if (date) { fadeIn(date, 3.8, 4.05); scaleKeys(date, [3.8, 4.15, 4.35], [50, 108, 100]); }
 
         // 5. Name, (LIVE) and subtitle roll in.
+        step = "artist name roll";
         function textIn(entry, label, t0, step, roll) {
             if (!entry) { missing.push(label); return; }
             var T = editableText(entry);
@@ -245,6 +253,7 @@
         textIn(sub, "subtitle (Halloween Weekend)", 5.0, 0.04, 0.3);
 
         // 6. Top logos drop in, then bottom logos rise in.
+        step = "logos";
         for (var t = 0; t < top.length; t++) { var a = 6.0 + t * 0.12; fadeIn(top[t].layer, a, a + 0.6); slide(top[t].layer, a, a + 0.6, -H * 0.016); }
         for (var b = 0; b < bottom.length; b++) { var c = 6.7 + b * 0.12; fadeIn(bottom[b].layer, c, c + 0.6); slide(bottom[b].layer, c, c + 0.6, H * 0.016); }
         return total;
@@ -284,13 +293,15 @@
     var startAt = parseTime(opts.start);
     if (isNaN(startAt) || startAt < 0) { alert("Couldn't read the start time \"" + opts.start + "\". Use m:ss (1:23.5) or seconds (83.5)."); return; }
 
-    var missing = [], failed = null;
+    var missing = [], failed = null, step = "importing the PSD";
     app.beginUndoGroup("Poster Motion");
     try {
         var comp = opts.psd ? importPoster(opts.psd) : app.project.activeItem;
         if (!(comp instanceof CompItem)) throw new Error("Pick a PSD, or open the poster's composition before running the script.");
         if (opts.psd) comp.name = File(opts.psd).displayName.replace(/\.[^.]+$/, "") + " - Motion";
+        step = "finding layers";
         var total = animate(comp, opts, missing);
+        step = "adding the song";
         if (opts.song) addSong(comp, opts.song, startAt, total);
         comp.openInViewer();
         comp.time = 0;
@@ -300,7 +311,7 @@
     }
     app.endUndoGroup();
 
-    if (failed) { alert("Poster Motion stopped:\n" + failed.message + "\n\nEdit > Undo removes anything it added."); return; }
+    if (failed) { alert("Poster Motion stopped while " + step + ":\n" + failed.message + (failed.line ? " (script line " + failed.line + ")" : "") + "\n\nEdit > Undo removes anything it added."); return; }
     var msg = "Done. Press the spacebar to preview." + (opts.renderQueue ? "\nThe comp is in the Render Queue." : "");
     if (missing.length) msg += "\n\nCouldn't find layers for:\n - " + missing.join("\n - ") +
         "\n\nRename them (see LAYERS at the top of the script), Edit > Undo, and run it again.";
