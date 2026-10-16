@@ -15,11 +15,10 @@ from the flat poster. It ends on the finished poster.
 | 2.75 – 3.55 | Red box wipes in up to the diagonal |
 | 3.4 – 4.1 | "the location" logo rises in |
 | 3.8 – 4.35 | Date pill pops in (slight overshoot) |
-| 4.0 – 5.5 | GIORGIA ANGIULI letters roll through random letters, then land one by one |
-| 5.0 – 5.9 | HALLOWEEN WEEKEND and (LIVE) roll in |
-| 6.0 – 6.85 | Top logos (Pinnacle, Dynamo, FLUB) drop in, left to right |
-| 6.7 – 7.4 | Bottom logos (Heineken 0.0, dsk) rise in |
-| 7.4 – 9.5 | Hold |
+| 4.3 – 5.1 | Top logos (Pinnacle, Dynamo, FLUB) drop in while the bottom logos (Heineken 0.0, dsk) rise in |
+| 5.1 – 6.6 | GIORGIA ANGIULI letters roll through random letters, then land one by one |
+| 6.1 – 7.0 | HALLOWEEN WEEKEND and (LIVE) roll in |
+| 7.0 – 9.5 | Hold |
 
 ## After Effects script
 

@@ -4,9 +4,9 @@
  *    - the layered poster PSD (leave empty to animate the comp that's open)
  *    - a song, and the time in the song to start from (e.g. 1:23.5 or 83.5)
  *  It then imports everything and animates the poster in this order:
- *    black -> person -> red frame stroke draws around -> diagonal line + red box
- *    wipe -> location logo + date -> artist name rolls in letter by letter
- *    -> top logos -> bottom logos -> hold, with the song fading out at the end.
+ *    black -> artist photo -> red frame draws around -> diagonal line + red half box
+ *    -> location logo + date -> top and bottom logos -> artist name rolls in
+ *    letter by letter -> hold, with the song fading out at the end.
  *
  *  Layers are found by name, including inside PSD groups (see LAYERS below).
  *  PSD text is converted to editable text automatically so the letter roll works.
@@ -301,7 +301,12 @@
         if (loc) { fadeIn(loc, 3.4, 3.8); slide(loc, 3.4, 4.1, H * 0.035); }
         if (date) { fadeIn(date, 3.8, 4.05); scaleKeys(date, [3.8, 4.15, 4.35], [50, 108, 100]); }
 
-        // 5. Name, (LIVE) and subtitle roll in.
+        // 5. Top logos drop in while the bottom logos rise in.
+        step = "logos";
+        for (var t = 0; t < top.length; t++) { var a = 4.3 + t * 0.12; fadeIn(top[t].layer, a, a + 0.6); slide(top[t].layer, a, a + 0.6, -H * 0.016); }
+        for (var b = 0; b < bottom.length; b++) { var c = 4.4 + b * 0.12; fadeIn(bottom[b].layer, c, c + 0.6); slide(bottom[b].layer, c, c + 0.6, H * 0.016); }
+
+        // 6. Last: artist name, (LIVE) and subtitle roll in.
         step = "artist name roll";
         function textIn(entry, label, t0, step, roll) {
             if (!entry) { missing.push(label); return; }
@@ -309,14 +314,9 @@
             if (T) rollText(T, t0, step, roll);
             else { fadeIn(entry.layer, t0, t0 + 0.4); slide(entry.layer, t0, t0 + 0.6, H * 0.03); }
         }
-        for (var j = 0; j < names.length; j++) textIn(names[j], "artist name", 4.0 + j * 0.25, 0.07, 0.55);
-        textIn(live, "(LIVE)", 5.15, 0.08, 0.3);
-        textIn(sub, "subtitle (Halloween Weekend)", 5.0, 0.04, 0.3);
-
-        // 6. Top logos drop in, then bottom logos rise in.
-        step = "logos";
-        for (var t = 0; t < top.length; t++) { var a = 6.0 + t * 0.12; fadeIn(top[t].layer, a, a + 0.6); slide(top[t].layer, a, a + 0.6, -H * 0.016); }
-        for (var b = 0; b < bottom.length; b++) { var c = 6.7 + b * 0.12; fadeIn(bottom[b].layer, c, c + 0.6); slide(bottom[b].layer, c, c + 0.6, H * 0.016); }
+        for (var j = 0; j < names.length; j++) textIn(names[j], "artist name", 5.1 + j * 0.25, 0.07, 0.55);
+        textIn(live, "(LIVE)", 6.25, 0.08, 0.3);
+        textIn(sub, "subtitle (Halloween Weekend)", 6.1, 0.04, 0.3);
         return total;
     }
 
