@@ -81,7 +81,7 @@
 
     // Adds the first effect this AE version knows, names it, and lets `setup` configure it
     // straight away (adding another effect later invalidates references to this one).
-    function addEffect(L, matchNames, name, setup) {
+    function addEffect(L, matchNames, name, setup, quiet) {
         var fx = L.property("ADBE Effect Parade");
         for (var i = 0; i < matchNames.length; i++) {
             if (!fx.canAddProperty(matchNames[i])) continue;
@@ -90,7 +90,7 @@
             if (setup) setup(e);
             return true;
         }
-        warnings.push("Effect not available: " + name);
+        if (!quiet) warnings.push("Effect not available: " + name);
         return false;
     }
     // Sets an effect parameter found by any of its names; notes it instead of failing.
@@ -107,6 +107,23 @@
         }
         warnings.push("Couldn't find " + effect.name + " > " + names[0]);
         return null;
+    }
+    // Runs one part of the build; if it fails, notes why and carries on with the rest.
+    function section(name, fn) {
+        try { fn(); } catch (e) { warnings.push("Part \"" + name + "\" failed: " + e.message + (e.line ? " (script line " + e.line + ")" : "")); }
+    }
+    // Lists every expression After Effects rejected, so problems are visible, not silent.
+    function expressionProblems(comp) {
+        var out = [];
+        function scan(p, where) {
+            if (p.propertyType === PropertyType.PROPERTY) {
+                if (p.canSetExpression && p.expression && p.expressionError) out.push(where + " > " + p.name + ": " + p.expressionError);
+                return;
+            }
+            for (var i = 1; i <= p.numProperties; i++) scan(p.property(i), where);
+        }
+        for (var i = 1; i <= comp.numLayers; i++) { try { scan(comp.layer(i), comp.layer(i).name); } catch (e) {} }
+        return out;
     }
     function ctl(name) { return 'thisComp.layer("CONTROLS").effect("' + name + '")(1)'; }
 
@@ -190,12 +207,14 @@
         addEffect(c, ["ADBE Color Control"], "Color", function (e) { e.property(1).setValue(color); });
         function slider(name, v) { addEffect(c, ["ADBE Slider Control"], name, function (e) { e.property(1).setValue(v); }); }
         slider("Glow", 100);    // %
-        slider("Streaks", 40);  // zoom blur amount
+        slider("Streaks", 60);  // zoom blur amount
         slider("Squeeze", 0.5); // pinch strength (Bulge height)
         slider("Speed", 0.8);   // copies per second flowing outward
         slider("Growth", 1.6);  // each copy this much bigger than the last
         slider("Stretch", 25);  // % taller per copy
-        slider("Sway", 3);      // degrees
+        slider("Sway", 3);      // degrees the whole tunnel rocks
+        slider("Twist", 4);     // extra degrees each copy turns, alternating up/down
+        slider("Copies", 75);   // % opacity of the copies
         slider("Grain", 7);     // %
         var text = main.layers.addText(word);
         text.name = "Main Text";
@@ -209,94 +228,112 @@
         // Background.
         main.layers.addSolid([0, 0, 0], "Black", W, H, 1, total).moveToEnd();
 
-        // Copies of the word flowing outward above and below it. Copy k is Growth^k the size,
-        // stretched taller by Stretch% per step; Speed is copies per second.
-        var C = 'var c = thisComp.layer("CONTROLS"), g = Math.max(1.01, c.effect("Growth")(1)), ' +
-                'sp = c.effect("Speed")(1), st = c.effect("Stretch")(1) / 100; ';
-        function kExpr(i) { return 'var k = ' + i + ' + (time * sp) % 1; '; }
-        var N_COPIES = 5;
-        for (var i = 0; i < N_COPIES; i++) {
-            for (var sgn = -1; sgn <= 1; sgn += 2) {
-                var cp = text.duplicate();
-                cp.name = "Copy " + (sgn < 0 ? "Up " : "Down ") + (i + 1);
-                tr(cp, "ADBE Scale").expression = C + kExpr(i) +
-                    'var s = Math.pow(g, k) * 100; [s, s * (1 + st * k)];';
-                tr(cp, "ADBE Position").expression = C + kExpr(i) +
-                    'var s = Math.pow(g, k), sy = s * (1 + st * k), th = ' + th.toFixed(2) + '; ' +
-                    'var d = th * (0.1 + 0.95 * (s - 1) / (g - 1)) + th * 0.45 * sy; ' +
-                    '[' + cx + ', ' + cy + ' + (' + sgn + ') * d];';
-                tr(cp, "ADBE Opacity").expression = C + kExpr(i) +
-                    'Math.min(1, k / 0.5) * 100 * ease(time, 0, 0.6, 0, 1);';
+        section("copies", function () {
+            // Copies of the word flowing outward above and below it. Copy k is Growth^k the size,
+            // stretched taller by Stretch% per step; Speed is copies per second.
+            var C = 'var c = thisComp.layer("CONTROLS"), g = Math.max(1.01, c.effect("Growth")(1)), ' +
+                    'sp = c.effect("Speed")(1), st = c.effect("Stretch")(1) / 100; ';
+            function kExpr(i) { return 'var k = ' + i + ' + (time * sp) % 1; '; }
+            var N_COPIES = 5;
+            for (var i = 0; i < N_COPIES; i++) {
+                for (var sgn = -1; sgn <= 1; sgn += 2) {
+                    var cp = text.duplicate();
+                    cp.name = "Copy " + (sgn < 0 ? "Up " : "Down ") + (i + 1);
+                    tr(cp, "ADBE Scale").expression = C + kExpr(i) +
+                        'var s = Math.pow(g, k) * 100; [s, s * (1 + st * k)];';
+                    tr(cp, "ADBE Position").expression = C + kExpr(i) +
+                        'var s = Math.pow(g, k), sy = s * (1 + st * k), th = ' + th.toFixed(2) + '; ' +
+                        'var d = th * (0.1 + 0.95 * (s - 1) / (g - 1)) + th * 0.45 * sy; ' +
+                        '[' + cx + ', ' + cy + ' + (' + sgn + ') * d];';
+                    tr(cp, "ADBE Opacity").expression = C + kExpr(i) +
+                        'Math.min(1, k / 0.5) * c.effect("Copies")(1) * ease(time, 0, 0.6, 0, 1);';
+                    // Each copy turns a little more (alternating), plus the shared sway.
+                    tr(cp, "ADBE Rotate Z").expression = C + kExpr(i) +
+                        '(' + sgn + ') * k * c.effect("Twist")(1) + Math.sin(time * 0.9) * c.effect("Sway")(1);';
+                }
             }
-        }
-
-        // Squeeze + light streaks on everything below: a pulsing pinch (Bulge with negative
-        // height), then a fast zoom blur from the centre (much quicker than Radial Blur).
-        var streaks = main.layers.addSolid([1, 1, 1], "Squeeze + Streaks", W, H, 1, total);
-        streaks.adjustmentLayer = true;
-        addEffect(streaks, ["ADBE Bulge"], "Squeeze", function (e) {
-            setParam(e, ["Horizontal Radius", "ADBE Bulge-0001"], W * 0.8);
-            setParam(e, ["Vertical Radius", "ADBE Bulge-0002"], H * 0.5);
-            setParam(e, ["Bulge Center", "ADBE Bulge-0003"], [cx, cy]);
-            setParam(e, ["Bulge Height", "ADBE Bulge-0004"], null,
-                "-" + ctl("Squeeze") + " * (1 + 0.4 * Math.sin(time * 2 * Math.PI * 0.45))");
         });
-        var streakExpr = ctl("Streaks") + " * ease(time, 0, 1.2, 2, 1)";
-        if (!addEffect(streaks, ["CC Radial Fast Blur"], "Zoom Streaks", function (e) {
-            setParam(e, ["Center"], [cx, cy]);
-            setParam(e, ["Amount"], null, streakExpr);
-        })) {
-            addEffect(streaks, ["ADBE Radial Blur"], "Zoom Streaks", function (e) {
-                setParam(e, ["ADBE Radial Blur-0002", "Center"], [cx, cy]);
-                setParam(e, ["ADBE Radial Blur-0003", "Type"], 2);
-                setParam(e, ["ADBE Radial Blur-0001", "Amount"], null, "Math.min(100, " + streakExpr + ")");
+
+        section("squeeze and streaks", function () {
+            // Squeeze + light streaks on everything below: a pulsing pinch (Bulge with negative
+            // height), then a fast zoom blur from the centre (much quicker than Radial Blur).
+            var streaks = main.layers.addSolid([1, 1, 1], "Squeeze + Streaks", W, H, 1, total);
+            streaks.adjustmentLayer = true;
+            addEffect(streaks, ["ADBE Bulge"], "Squeeze", function (e) {
+                setParam(e, ["Horizontal Radius", "ADBE Bulge-0001"], W * 0.8);
+                setParam(e, ["Vertical Radius", "ADBE Bulge-0002"], H * 0.5);
+                setParam(e, ["Bulge Center", "ADBE Bulge-0003"], [cx, cy]);
+                setParam(e, ["Bulge Height", "ADBE Bulge-0004"], null,
+                    "-" + ctl("Squeeze") + " * (1 + 0.4 * Math.sin(time * 2 * Math.PI * 0.45))");
             });
-        }
+            var streakExpr = ctl("Streaks") + " * ease(time, 0, 1.2, 2, 1)";
+            if (!addEffect(streaks, ["CC Radial Fast Blur"], "Zoom Streaks", function (e) {
+                setParam(e, ["Center"], [cx, cy]);
+                setParam(e, ["Amount"], null, streakExpr);
+            }, true)) {
+                addEffect(streaks, ["ADBE Radial Blur"], "Zoom Streaks", function (e) {
+                    setParam(e, ["ADBE Radial Blur-0002", "Center"], [cx, cy]);
+                    setParam(e, ["ADBE Radial Blur-0003", "Type"], 2);
+                    setParam(e, ["ADBE Radial Blur-0001", "Amount"], null, "Math.min(100, " + streakExpr + ")");
+                });
+            }
+        });
 
-        // Hourglass: darkens the side wedges, pinched toward the middle.
-        var shade = main.layers.addSolid([0, 0, 0], "Hourglass Shade", W, H, 1, total);
-        var m = shade.property("ADBE Mask Parade").addProperty("ADBE Mask Atom");
-        m.maskMode = MaskMode.SUBTRACT;
-        var hg = new Shape();
-        hg.vertices = [[0, 0], [W, 0], [cx + 0.27 * W, cy], [W, H], [0, H], [cx - 0.27 * W, cy]];
-        hg.closed = true;
-        shade.property("ADBE Mask Parade").property(1).property("ADBE Mask Shape").setValue(hg);
-        shade.property("ADBE Mask Parade").property(1).property("ADBE Mask Feather").setValue([150, 150]);
-        tr(shade, "ADBE Opacity").setValue(90);
+        section("hourglass shade", function () {
+            // Hourglass: darkens the side wedges, pinched toward the middle.
+            var shade = main.layers.addSolid([0, 0, 0], "Hourglass Shade", W, H, 1, total);
+            var m = shade.property("ADBE Mask Parade").addProperty("ADBE Mask Atom");
+            m.maskMode = MaskMode.SUBTRACT;
+            var hg = new Shape();
+            hg.vertices = [[0, 0], [W, 0], [cx + 0.27 * W, cy], [W, H], [0, H], [cx - 0.27 * W, cy]];
+            hg.closed = true;
+            shade.property("ADBE Mask Parade").property(1).property("ADBE Mask Shape").setValue(hg);
+            shade.property("ADBE Mask Parade").property(1).property("ADBE Mask Feather").setValue([150, 150]);
+            tr(shade, "ADBE Opacity").setValue(90);
+        });
 
-        // Main word on top of the tunnel: scales in and fades up.
-        text.moveToBeginning();
-        keys(tr(text, "ADBE Scale"), [0, 1.0], [[130, 130, 100], [100, 100, 100]]);
-        keys(tr(text, "ADBE Opacity"), [0, 0.5], [0, 100]);
-        // A slight breathing squeeze on the main word, in time with the pinch.
-        tr(text, "ADBE Scale").expression = "var q = " + ctl("Squeeze") + " * 4 * Math.sin(time * 2 * Math.PI * 0.45); [value[0] - q, value[1] + q * 1.5, value[2]];";
+        section("main text animation", function () {
+            // Main word on top of the tunnel: scales in and fades up.
+            text.moveToBeginning();
+            keys(tr(text, "ADBE Scale"), [0, 1.0], [[130, 130, 100], [100, 100, 100]]);
+            keys(tr(text, "ADBE Opacity"), [0, 0.5], [0, 100]);
+            // A slight breathing squeeze on the main word, in time with the pinch.
+            tr(text, "ADBE Rotate Z").expression = "Math.sin(time * 0.9) * " + ctl("Sway") + " * 0.5";
+            tr(text, "ADBE Scale").expression = "var q = " + ctl("Squeeze") + " * 4 * Math.sin(time * 2 * Math.PI * 0.45); [value[0] - q, value[1] + q * 1.5, value[2]];";
+        });
 
-        // Look: sway, colour, glow, grain over everything.
-        var look = main.layers.addSolid([1, 1, 1], "Look (colour + glow)", W, H, 1, total);
-        look.adjustmentLayer = true;
-        look.moveToBeginning();
-        addEffect(look, ["ADBE Geometry2"], "Sway", function (e) {
-            setParam(e, ["ADBE Geometry2-0001", "Anchor Point"], [cx, cy]);
-            setParam(e, ["ADBE Geometry2-0002", "Position"], [cx, cy]);
-            setParam(e, ["Rotation", "ADBE Geometry2-0007"], null, "Math.sin(time * 0.9) * " + ctl("Sway"));
+        section("colour", function () {
+            // Colour: a full-frame shape filled with CONTROLS > Color, multiplied over everything,
+            // so white turns into the colour and black stays black.
+            var tint = main.layers.addShape();
+            tint.name = "Colour (set on CONTROLS)";
+            var tv = tint.property("ADBE Root Vectors Group").addProperty("ADBE Vector Group").property("ADBE Vectors Group");
+            tv.addProperty("ADBE Vector Shape - Rect").property("ADBE Vector Rect Size").setValue([W * 2, H * 2]);
+            tv.addProperty("ADBE Vector Graphic - Fill");
+            tv.property("ADBE Vector Graphic - Fill").property("ADBE Vector Fill Color").expression = ctl("Color");
+            tr(tint, "ADBE Position").setValue([cx, cy]);
+            tint.blendingMode = BlendingMode.MULTIPLY;
+            tint.moveToBeginning();
         });
-        addEffect(look, ["ADBE Tint"], "Colour", function (e) {
-            setParam(e, ["ADBE Tint-0001", "Map Black To"], [0, 0, 0]);
-            setParam(e, ["ADBE Tint-0002", "Map White To"], null, ctl("Color"));
-        });
-        addEffect(look, ["ADBE Glo2"], "Glow Wide", function (e) {
-            setParam(e, ["Glow Threshold", "ADBE Glo2-0002"], 35);
-            setParam(e, ["Glow Radius", "ADBE Glo2-0003"], 110);
-            setParam(e, ["Glow Intensity", "ADBE Glo2-0004"], null, "1.4 * " + ctl("Glow") + " / 100");
-        });
-        addEffect(look, ["ADBE Glo2"], "Glow Tight", function (e) {
-            setParam(e, ["Glow Threshold", "ADBE Glo2-0002"], 55);
-            setParam(e, ["Glow Radius", "ADBE Glo2-0003"], 22);
-            setParam(e, ["Glow Intensity", "ADBE Glo2-0004"], null, "1.0 * " + ctl("Glow") + " / 100");
-        });
-        addEffect(look, ["ADBE Noise"], "Grain", function (e) {
-            setParam(e, ["Amount of Noise", "ADBE Noise-0001"], null, ctl("Grain"));
-            setParam(e, ["Use Color Noise", "ADBE Noise-0002"], 0);
+
+        section("glow and grain", function () {
+            // Glow and grain over everything; the glow turns the brightest parts white-hot.
+            var look = main.layers.addSolid([1, 1, 1], "Glow + Grain", W, H, 1, total);
+            look.adjustmentLayer = true;
+            look.moveToBeginning();
+            addEffect(look, ["ADBE Glo2"], "Glow Wide", function (e) {
+                setParam(e, ["Glow Threshold", "ADBE Glo2-0002"], 30);
+                setParam(e, ["Glow Radius", "ADBE Glo2-0003"], 120);
+                setParam(e, ["Glow Intensity", "ADBE Glo2-0004"], null, "1.6 * " + ctl("Glow") + " / 100");
+            });
+            addEffect(look, ["ADBE Glo2"], "Glow Tight", function (e) {
+                setParam(e, ["Glow Threshold", "ADBE Glo2-0002"], 45);
+                setParam(e, ["Glow Radius", "ADBE Glo2-0003"], 25);
+                setParam(e, ["Glow Intensity", "ADBE Glo2-0004"], null, "1.2 * " + ctl("Glow") + " / 100");
+            });
+            addEffect(look, ["ADBE Noise"], "Grain", function (e) {
+                setParam(e, ["Amount of Noise", "ADBE Noise-0001"], null, ctl("Grain"));
+            });
         });
 
         c.moveToBeginning();
@@ -344,7 +381,13 @@
         alert("Glow Tunnel stopped:\n" + failed.message + (failed.line ? " (script line " + failed.line + ")" : "") + "\n\nEdit > Undo removes anything it added.");
         return;
     }
+    var problems = warnings.concat(expressionProblems(comp));
     var msg = "Done. Change the colour, glow, streaks, squeeze, speed and more on the CONTROLS layer.";
-    if (warnings.length) msg += "\n\nNotes:\n - " + warnings.join("\n - ");
+    if (problems.length) {
+        var report = new File(Folder.desktop.fsName + "/GlowTunnel report.txt");
+        try { report.open("w"); report.write("Glow Tunnel report\n\n" + problems.join("\n")); report.close(); } catch (e) {}
+        msg += "\n\nSome parts need attention (also saved to \"GlowTunnel report.txt\" on your Desktop):\n - " +
+               problems.slice(0, 12).join("\n - ") + (problems.length > 12 ? "\n - ..." : "");
+    }
     alert(msg);
 })();

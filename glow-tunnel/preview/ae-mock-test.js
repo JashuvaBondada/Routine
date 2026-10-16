@@ -30,6 +30,9 @@ class Prop {
     return k;
   }
   get numProperties() { return this.kids.length; }
+  get propertyType() { return this.kids.length ? 2 : 1; }
+  get canSetExpression() { return true; }
+  get expressionError() { return ''; }
   get propertyIndex() { return this.parentProperty.kids.indexOf(this) + 1; }
   canAddProperty(mn) { return KNOWN_EFFECTS.has(mn) || /^ADBE (Mask Atom|Vector)/.test(mn); }
   addProperty(mn) {
@@ -61,6 +64,7 @@ class Layer {
     this.hasVideo = kind !== 'audio'; this.hasAudio = kind === 'audio';
   }
   property(n) { if (n === 'ADBE Text Properties' && this.kind !== 'text') return null; return this.root.property(n); }
+  get numProperties() { return this.root.kids.length; }
   sourceRectAtTime() {
     if (this.kind === 'text') { const d = this.property('ADBE Text Properties').property('ADBE Text Document').value;
       return { left: -d.text.length * d.fontSize * 0.27, top: -d.fontSize * 0.72, width: d.text.length * d.fontSize * 0.54, height: d.fontSize * 0.72 }; }
@@ -146,11 +150,12 @@ class Window {
   show() { this._edits.forEach((c, i) => c.text = answers.edit[i]); this._checks.forEach((c, i) => c.value = answers.checks[i]); return 1; }
 }
 function File(p) { if (!(this instanceof File)) return new File(p); this.fsName = p; this.exists = true; this.displayName = String(p).split('/').pop(); }
+File.prototype.open = function () { return true; }; File.prototype.write = function (t) { log.push('REPORT FILE ' + this.fsName + ':\n' + t); }; File.prototype.close = function () {};
 File.openDialog = () => null;
 function ImportOptions(f) { this.file = f; this.canImportAs = () => true; }
 
 const ctx = {
-  app, File, ImportOptions, Window, CompItem, AVLayer: Layer, TextLayer: Layer, ShapeLayer: Layer,
+  app, File, ImportOptions, Folder: { desktop: { fsName: '/home/mock/Desktop' } }, PropertyType: { PROPERTY: 1, INDEXED_GROUP: 2, NAMED_GROUP: 3 }, Window, CompItem, AVLayer: Layer, TextLayer: Layer, ShapeLayer: Layer,
   ImportAsType: { COMP_CROPPED_LAYERS: 1, COMP: 2 }, KeyframeEase: function (s, i) { this.speed = s; this.influence = i; },
   PropertyValueType: { TwoD_SPATIAL: 6413, ThreeD_SPATIAL: 6414 }, ParagraphJustification: { CENTER_JUSTIFY: 7415 },
   MaskMode: { ADD: 1, SUBTRACT: 2, INTERSECT: 3 }, Shape: function () {}, BlendingMode: { MULTIPLY: 1 },
@@ -166,7 +171,7 @@ const main = [...new Set(expressions.map(() => null))] && Layer.builtComp;
 let bad = 0;
 const comps = [];
 for (const e of expressions) {
-  const controls = { effect: n => () => ({ Glow: 100, Streaks: 40, Squeeze: 0.5, Speed: 0.8, Growth: 1.6, Stretch: 25, Sway: 3, Grain: 7, Color: [1, 0.4, 0, 1] }[n] ?? (() => { throw new Error('no control "' + n + '"'); })()) };
+  const controls = { effect: n => () => ({ Glow: 100, Streaks: 40, Squeeze: 0.5, Speed: 0.8, Growth: 1.6, Stretch: 25, Sway: 3, Grain: 7, Twist: 4, Copies: 75, Color: [1, 0.4, 0, 1] }[n] ?? (() => { throw new Error('no control "' + n + '"'); })()) };
   const thisComp = { layer: n => { if (n !== 'CONTROLS') throw new Error('no layer ' + n); return { effect: n2 => idx => controls.effect(n2)() }; } };
   const ease = (t, t0, t1, a, b) => { const p = Math.max(0, Math.min(1, (t - t0) / (t1 - t0))); return a + (b - a) * p; };
   try {

@@ -83,12 +83,18 @@ for fr in FRAMES:
         k = i + flow
         sc = GROW ** k; sy = sc * (1 + STRETCH * k)
         d = th * (0.1 + 0.95 * (GROW ** k - 1) / (GROW - 1)) + th * 0.45 * sy
-        alpha = min(1, k / 0.5)
+        alpha = min(1, k / 0.5) * 0.75
         for sgn in (-1, 1):
-            M = np.float32([[sc, 0, cx - sc * cx], [0, sy, cy + sgn * d - sy * WORD.shape[0] / 2]])
+            # Scale + stretch about the word centre, then twist each copy a little more.
+            ang = math.radians(sgn * k * 4 + math.sin(t * 0.9) * 3)
+            ca, sa = math.cos(ang), math.sin(ang)
+            A = np.float32([[ca * sc, -sa * sy], [sa * sc, ca * sy]])
+            c0 = np.float32([cx, WORD.shape[0] / 2])
+            tgt = np.float32([cx, cy + sgn * d])
+            M = np.hstack([A, (tgt - A @ c0)[:, None]]).astype(np.float32)
             stack = np.maximum(stack, cv2.warpAffine(WORD, M, (W, H)) * alpha)
     floor = ceil = stack
-    streak = 0.3 + 0.5 * (1 - intro)
+    streak = 0.42 + 0.5 * (1 - intro)
     squeeze = 0.28 + 0.12 * math.sin(t * 2 * math.pi * 0.45)
     tunnel_raw = zoom_blur(pinch(np.maximum(floor, ceil), squeeze), streak) * 1.6 * min(1, t / 0.6)
     tunnel = tunnel_raw * HOURGLASS
