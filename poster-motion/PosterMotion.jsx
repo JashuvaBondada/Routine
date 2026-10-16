@@ -176,6 +176,64 @@
         return { layer: L, stroke: s, trim: v.property("ADBE Vector Filter - Trim") };
     }
 
+    // Guesses a layer for each part of the poster by name, then lets you correct
+    // the guesses. Returns { role: entry } or null if cancelled.
+    function matchLayers(comp, all) {
+        var F = makeFinder(all), guess = {};
+        // Guess order matters: loose words like "red" and "box" go last.
+        guess.background = F.one(LAYERS.background);
+        guess.person = F.one(LAYERS.person);
+        guess.border = F.one(LAYERS.border);
+        guess.location = F.one(LAYERS.location);
+        guess.date = F.one(LAYERS.date);
+        guess.name1 = F.one(LAYERS.name);
+        guess.name2 = guess.name1 ? F.one(LAYERS.name) : null;
+        guess.live = F.one(LAYERS.live);
+        guess.subtitle = F.one(LAYERS.subtitle);
+        var tops = F.each(LAYERS.topLogos), bots = F.each(LAYERS.bottomLogos);
+        for (var i = 0; i < 3; i++) guess["top" + (i + 1)] = tops[i] || null;
+        for (var j = 0; j < 2; j++) guess["bottom" + (j + 1)] = bots[j] || null;
+        guess.redBox = F.one(LAYERS.redBox);
+
+        var ROLES = [
+            ["background", "Poster background"], ["person", "Person / photo"],
+            ["border", "Red frame (hidden, it gets drawn)"], ["redBox", "Red diagonal box"],
+            ["location", "Location logo"], ["date", "Date"],
+            ["name1", "Artist name (line 1)"], ["name2", "Artist name (line 2)"],
+            ["live", "(LIVE)"], ["subtitle", "Subtitle"],
+            ["top1", "Top logo 1"], ["top2", "Top logo 2"], ["top3", "Top logo 3"],
+            ["bottom1", "Bottom logo 1"], ["bottom2", "Bottom logo 2"]
+        ];
+        var labels = ["(none)"];
+        for (var a = 0; a < all.length; a++)
+            labels.push((all[a].comp === comp ? "" : all[a].comp.name + "  >  ") + all[a].layer.name);
+        function indexOf(entry) { for (var b = 0; b < all.length; b++) if (all[b] === entry) return b + 1; return 0; }
+
+        var d = new Window("dialog", "Poster Motion - check the layers");
+        d.orientation = "column"; d.alignChildren = ["fill", "top"];
+        d.add("statictext", undefined, "These are the layers the script guessed. Fix any that are wrong. Anything set to (none) is skipped.", { multiline: true }).preferredSize.width = 460;
+        var drops = {};
+        for (var r = 0; r < ROLES.length; r++) {
+            var g = d.add("group");
+            g.add("statictext", undefined, ROLES[r][1]).preferredSize.width = 200;
+            var dd = g.add("dropdownlist", undefined, labels);
+            dd.preferredSize.width = 250;
+            dd.selection = indexOf(guess[ROLES[r][0]]);
+            drops[ROLES[r][0]] = dd;
+        }
+        var bt = d.add("group"); bt.alignment = "right";
+        bt.add("button", undefined, "Cancel", { name: "cancel" });
+        bt.add("button", undefined, "Animate", { name: "ok" });
+        if (d.show() !== 1) return null;
+
+        var out = {};
+        for (var key in drops) {
+            var sel = drops[key].selection ? drops[key].selection.index : 0;
+            out[key] = sel > 0 ? all[sel - 1] : null;
+        }
+        return out;
+    }
+
     // ---------------- main ----------------
     function animate(comp, opts, missing) {
         var W = comp.width, H = comp.height;
@@ -190,18 +248,19 @@
         }
 
         // Find every poster layer before adding any (adding layers renumbers them).
-        var F = makeFinder(all);
-        function need(e, label) { if (!e) missing.push(label); return e ? e.layer : null; }
-        var bg = F.one(LAYERS.background), person = need(F.one(LAYERS.person), "person / photo");
-        var border = F.one(LAYERS.border);
-        var loc = need(F.one(LAYERS.location), "location logo"), date = need(F.one(LAYERS.date), "date");
-        var names = [], n1 = F.one(LAYERS.name);
-        if (n1) { names.push(n1); var n2 = F.one(LAYERS.name); if (n2) names.push(n2); } else missing.push("artist name");
-        var live = F.one(LAYERS.live), sub = F.one(LAYERS.subtitle);
-        var top = F.each(LAYERS.topLogos), bottom = F.each(LAYERS.bottomLogos);
+        var R = matchLayers(comp, all);
+        if (!R) throw new Error("Cancelled.");
+        function need(key, label) { if (!R[key]) missing.push(label); return R[key] ? R[key].layer : null; }
+        function list(prefix, n) { var out = []; for (var k = 1; k <= n; k++) if (R[prefix + k]) out.push(R[prefix + k]); return out; }
+        var bg = R.background, person = need("person", "person / photo"), border = R.border;
+        var loc = need("location", "location logo"), date = need("date", "date");
+        var names = list("name", 2);
+        if (!names.length) missing.push("artist name");
+        var live = R.live, sub = R.subtitle;
+        var top = list("top", 3), bottom = list("bottom", 2);
         if (!top.length) missing.push("top logos");
         if (!bottom.length) missing.push("bottom logos");
-        var redBox = need(F.one(LAYERS.redBox), "red diagonal box");
+        var redBox = need("redBox", "red diagonal box");
 
         // 1. Black background, then the poster's own background and the person.
         step = "black background and person";
@@ -219,6 +278,7 @@
         keys(fr.trim.property("ADBE Vector Trim Start"), [1.2, 2.4], [50, 0]);
         keys(fr.trim.property("ADBE Vector Trim End"), [1.2, 2.4], [50, 100]);
         keys(fr.stroke.property("ADBE Vector Stroke Width"), [2.3, 2.8], [4, fw]);
+        fr.layer.inPoint = 1.2; // nothing on screen until the line starts drawing
 
         // 3. Diagonal line draws, then the red box wipes in.
         step = "diagonal line and red box";
@@ -229,6 +289,7 @@
         }, [225 / 255, 20 / 255, 26 / 255], Math.max(2, Math.round(W * 4 / 1080)));
         keys(dl.trim.property("ADBE Vector Trim End"), [2.3, 2.95], [0, 100]);
         keys(tr(dl.layer, "ADBE Opacity"), [3.4, 3.8], [100, 0]);
+        dl.layer.inPoint = 2.3;
         if (redBox) {
             var wipe = redBox.property("ADBE Effect Parade").addProperty("ADBE Linear Wipe");
             wipe.property("ADBE Linear Wipe-0002").setValue(180 + Math.atan(0.792) * 180 / Math.PI);
@@ -311,6 +372,7 @@
     }
     app.endUndoGroup();
 
+    if (failed && failed.message === "Cancelled.") { alert("Cancelled. Edit > Undo removes the imported PSD."); return; }
     if (failed) { alert("Poster Motion stopped while " + step + ":\n" + failed.message + (failed.line ? " (script line " + failed.line + ")" : "") + "\n\nEdit > Undo removes anything it added."); return; }
     var msg = "Done. Press the spacebar to preview." + (opts.renderQueue ? "\nThe comp is in the Render Queue." : "");
     if (missing.length) msg += "\n\nCouldn't find layers for:\n - " + missing.join("\n - ") +

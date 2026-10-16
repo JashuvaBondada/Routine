@@ -29,7 +29,10 @@ PSD, with music:
 1. **File → Scripts → Run Script File…** → `PosterMotion.jsx`.
 2. In the dialog, pick the **Poster PSD**, the **Song**, the time in the song to
    **start from** (`1:23.5` or `83.5`), and the **video length** (at least 9.5 s).
-3. Click **Animate**.
+3. Click **Animate**. A second window shows which PSD layer the script picked
+   for each part (person, red frame, red box, logos…). Fix any wrong ones and
+   click **Animate** again. The PSD's own red frame is hidden so the frame can
+   be drawn on from a blank screen.
 
 It imports the PSD as *Composition – Retain Layer Sizes*, animates it, lines up
 the song so the chosen moment plays at 0:00 (with a short fade in and out),
