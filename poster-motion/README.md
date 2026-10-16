@@ -21,22 +21,27 @@ from the flat poster. It ends on the finished poster.
 | 6.7 – 7.4 | Bottom logos (Heineken 0.0, dsk) rise in |
 | 7.4 – 9.5 | Hold |
 
-## After Effects script (for the layered file)
+## After Effects script
 
-`PosterMotion.jsx` rebuilds the same sequence in After Effects on your layered
-PSD/AI, so you can edit everything:
+`PosterMotion.jsx` builds the same animation in After Effects from your layered
+PSD, with music:
 
-1. Import the layered poster as **Composition – Retain Layer Sizes** and open the comp.
-2. **File → Scripts → Run Script File…** → `PosterMotion.jsx`.
+1. **File → Scripts → Run Script File…** → `PosterMotion.jsx`.
+2. In the dialog, pick the **Poster PSD**, the **Song**, the time in the song to
+   **start from** (`1:23.5` or `83.5`), and the **video length** (at least 9.5 s).
+3. Click **Animate**.
 
-It finds layers by name (e.g. "person", "border", "red box", "location",
-"date", "giorgia", "live", "halloween", "pinnacle", "dynamo", "flub",
-"heineken", "dsk"; see the `LAYERS` list at the top of the script). At the
-end it lists any layer it couldn't find. The letter roll needs the name,
-(LIVE) and subtitle to be live text layers; rasterised text gets a slide-up
-instead. It adds a black background, a drawn frame stroke (Trim Paths), a
-diagonal line, a Linear Wipe on the red box, and keyframes with easing on
-everything else. Everything is in one undo step.
+It imports the PSD as *Composition – Retain Layer Sizes*, animates it, lines up
+the song so the chosen moment plays at 0:00 (with a short fade in and out),
+opens the comp and adds it to the Render Queue. Leave the PSD empty to animate
+the comp that's already open.
+
+Layers are found by name, including inside PSD groups (e.g. "person",
+"border", "red box", "location", "date", "giorgia", "live", "halloween",
+"pinnacle", "dynamo", "flub", "heineken", "dsk"; see `LAYERS` at the top of
+the script). PSD text is converted to editable text automatically so the
+letter roll works. Anything it can't find is listed at the end. All
+keyframes are set in batches, and the whole run is one Edit → Undo.
 
 ## Re-rendering the video
 
