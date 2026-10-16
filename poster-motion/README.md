@@ -28,22 +28,34 @@ PSD, with music:
 1. **File → Scripts → Run Script File…** → `PosterMotion.jsx`.
 2. In the dialog, pick the **Poster PSD**, the **Song**, the time in the song to
    **start from** (`1:23.5` or `83.5`), and the **video length** (at least 9.5 s).
-3. Click **Animate**. A second window shows which PSD layer the script picked
-   for each part (person, red frame, red box, logos…). Fix any wrong ones and
-   click **Animate** again. The PSD's own red frame is hidden so the frame can
-   be drawn on from a blank screen.
+3. Click **Animate**.
 
 It imports the PSD as *Composition – Retain Layer Sizes*, animates it, lines up
 the song so the chosen moment plays at 0:00 (with a short fade in and out),
 opens the comp and adds it to the Render Queue. Leave the PSD empty to animate
 the comp that's already open.
 
-Layers are found by name, including inside PSD groups (e.g. "person",
-"border", "red box", "location", "date", "giorgia", "live", "halloween",
-"pinnacle", "dynamo", "flub", "heineken", "dsk"; see `LAYERS` at the top of
-the script). PSD text is converted to editable text automatically so the
-letter roll works. Anything it can't find is listed at the end. All
-keyframes are set in batches, and the whole run is one Edit → Undo.
+Layer names don't matter: each layer is recognised by where it sits on the
+poster and what kind of layer it is. The photo is the biggest layer, the red
+half box is the multiply fill, the red frame is the full-size layer above the
+background, then by height on the poster: top logos, location, date, name /
+(LIVE) / subtitle, bottom logos. Tick **Let me check which layer is which** to
+review or change the picks. On this poster's PSD the picks are:
+
+| Part | PSD layer |
+|---|---|
+| Artist photo | Curly-haired woman in silver mesh outfit |
+| Red frame (hidden, then drawn) | Layer 2 |
+| Red half box | Color Fill 2 |
+| Location | Vector Smart Object (the one at the top-centre) |
+| Date | Rectangle 1 + 30th oct - 01st nov |
+| Top logos | Pinnacle black logo, IMG_4792, Vector Smart Object |
+| Bottom logos | IMG_4771 (1), dsk logo blanco |
+| Name / (LIVE) / subtitle | giorgia angiuli, (live), halloween weekend |
+
+As in the video, only the top half of the photo shows at first; the red box
+and the bottom half sweep in together along the diagonal. PSD text is converted
+to editable text so the letter roll works, and the whole run is one Edit → Undo.
 
 ## Re-rendering the video
 

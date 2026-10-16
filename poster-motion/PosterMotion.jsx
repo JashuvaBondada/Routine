@@ -3,37 +3,89 @@
  *  File > Scripts > Run Script File... and pick this file. A dialog asks for:
  *    - the layered poster PSD (leave empty to animate the comp that's open)
  *    - a song, and the time in the song to start from (e.g. 1:23.5 or 83.5)
- *  It then imports everything and animates the poster in this order:
+ *  It imports everything and animates the poster in this order:
  *    black -> artist photo -> red frame draws around -> diagonal line + red half box
  *    -> location logo + date -> top and bottom logos -> artist name rolls in
  *    letter by letter -> hold, with the song fading out at the end.
  *
- *  Layers are found by name, including inside PSD groups (see LAYERS below).
- *  PSD text is converted to editable text automatically so the letter roll works.
+ *  Layers are recognised by where they sit on the poster and what kind of layer
+ *  they are (photo, multiply fill, full-frame border, text...), so layer names
+ *  don't matter. Tick "Let me check which layer is which" to review the picks.
  *  Everything is one undo step (Edit > Undo).
  */
+
+// Sorts poster layers into roles from their position and type.
+// items: [{ name, x0, y0, x1, y1, blend ("multiply"...), adjustment, kind }], in comp pixels.
+function classifyPosterLayers(items, W, H) {
+    var R = { background: null, person: null, border: null, redBox: null, location: null,
+              date: [], name: [], live: null, subtitle: null, top: [], bottom: [] };
+    var SKIP = /gradient map|adjust|curves|levels|hue|saturation|brightness|black & white|photo filter|vibrance|exposure|channel mixer|color lookup/i;
+    var rest = [];
+    for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        if (it.adjustment || SKIP.test(it.name) || it.kind === "audio") continue;
+        it.w = it.x1 - it.x0; it.h = it.y1 - it.y0;
+        it.cx = (it.x0 + it.x1) / 2 / W; it.cy = (it.y0 + it.y1) / 2 / H;
+        it.full = it.w >= 0.95 * W && it.h >= 0.95 * H;
+        rest.push(it);
+    }
+    function take(pred) {
+        for (var j = 0; j < rest.length; j++) if (pred(rest[j])) return rest.splice(j, 1)[0];
+        return null;
+    }
+    // The red half box: a multiply layer or a colour fill spanning the width.
+    R.redBox = take(function (L) { return L.blend === "multiply" && L.w >= 0.9 * W; }) ||
+               take(function (L) { return /color fill|colour fill|red|box|diagonal/i.test(L.name) && L.w >= 0.9 * W; });
+    // Full-frame layers: the lowest is the background, the next one up is the red frame.
+    R.background = take(function (L) { return /^background$/i.test(L.name); });
+    var fulls = [];
+    for (var f = 0; f < rest.length; f++) if (rest[f].full) fulls.push(rest.splice(f--, 1)[0]); // items are bottom-up
+    if (!R.background && fulls.length) R.background = fulls.shift();
+    if (fulls.length) R.border = fulls[0];
+    // Photo: the biggest remaining layer.
+    var big = -1, bi = -1;
+    for (var p = 0; p < rest.length; p++) { var a = rest[p].w * rest[p].h; if (a > big) { big = a; bi = p; } }
+    if (bi >= 0 && big > 0.2 * W * H) R.person = rest.splice(bi, 1)[0];
+
+    // Everything else by height on the poster.
+    var locs = [], names = [];
+    for (var q = 0; q < rest.length; q++) {
+        var L = rest[q];
+        if (L.cy < 0.12) R.top.push(L);
+        else if (L.cy < 0.195) locs.push(L);
+        else if (L.cy < 0.25) R.date.push(L);
+        else if (L.cy >= 0.86) R.bottom.push(L);
+        else if (L.cy >= 0.6) names.push(L);
+    }
+    function byX(a, b) { return a.cx - b.cx; }
+    R.top.sort(byX); R.bottom.sort(byX);
+    locs.sort(function (a, b) { return b.w * b.h - a.w * a.h; });
+    R.location = locs[0] || null;
+    for (var e = 1; e < locs.length; e++) R.date.push(locs[e]);
+    // In the name area: tall text is the name, a small block on the right is (LIVE),
+    // and the rest is the subtitle line.
+    names.sort(function (a, b) { return b.h - a.h; });
+    for (var n = 0; n < names.length; n++) {
+        var t = names[n];
+        if (t.h >= 0.05 * H) R.name.push(t);
+        else if (!R.live && t.cx > 0.7 && t.w < 0.12 * W) R.live = t;
+        else if (!R.subtitle) R.subtitle = t;
+        else R.name.push(t);
+    }
+    return R;
+}
+
 (function () {
-    var LAYERS = {
-        background: ["background", "bg", "backdrop"],
-        person:     ["person", "artist photo", "photo", "model", "portrait", "image"],
-        border:     ["border", "frame", "stroke", "outline"],
-        location:   ["the location", "location", "venue"],
-        date:       ["date", "30th", "oct"],
-        name:       ["giorgia", "angiuli", "artist name", "name", "headliner"],
-        live:       ["(live)", "live"],
-        subtitle:   ["halloween", "weekend", "subtitle"],
-        topLogos:   ["pinnacle", "dynamo", "flub"],
-        bottomLogos:["heineken", "dsk"],
-        redBox:     ["red box", "diagonal", "panel", "triangle", "red", "box"] // loosest, matched last
-    };
+    if (typeof app === "undefined") return; // loaded outside After Effects (tests)
+
     var ANIM_END = 9.5; // seconds; the comp is at least this long
     var RED = [148 / 255, 2 / 255, 3 / 255];
+    var step = "starting";
 
-    // ---------------- dialog ----------------
+    // ---------------- dialogs ----------------
     function askInputs() {
         var d = new Window("dialog", "Poster Motion");
         d.orientation = "column"; d.alignChildren = ["fill", "top"];
-
         function fileRow(label, filter) {
             var g = d.add("group"); g.add("statictext", undefined, label).preferredSize.width = 90;
             var path = g.add("edittext", undefined, ""); path.preferredSize.width = 300;
@@ -41,25 +93,63 @@
             btn.onClick = function () { var f = File.openDialog("Choose " + label.toLowerCase(), filter); if (f) path.text = f.fsName; };
             return path;
         }
-        var psd = fileRow("Poster PSD", "*.psd;*.psb;*.ai");
+        var psd = fileRow("Poster PSD", "*.psd;*.psb");
         var song = fileRow("Song", "*.mp3;*.wav;*.aif;*.aiff;*.m4a;*.aac");
-
         var g2 = d.add("group"); g2.add("statictext", undefined, "Start song at").preferredSize.width = 90;
         var start = g2.add("edittext", undefined, "0:00"); start.preferredSize.width = 80;
         g2.add("statictext", undefined, "(m:ss or seconds)");
-
         var g3 = d.add("group"); g3.add("statictext", undefined, "Video length").preferredSize.width = 90;
         var len = g3.add("edittext", undefined, "15"); len.preferredSize.width = 80;
         g3.add("statictext", undefined, "seconds (min " + ANIM_END + ")");
-
         d.add("statictext", undefined, "Leave Poster PSD empty to animate the comp that is open now.");
+        var check = d.add("checkbox", undefined, "Let me check which layer is which");
         var rq = d.add("checkbox", undefined, "Add to Render Queue when done"); rq.value = true;
-
         var b = d.add("group"); b.alignment = "right";
         b.add("button", undefined, "Cancel", { name: "cancel" });
         b.add("button", undefined, "Animate", { name: "ok" });
         if (d.show() !== 1) return null;
-        return { psd: psd.text, song: song.text, start: start.text, length: len.text, renderQueue: rq.value };
+        return { psd: psd.text, song: song.text, start: start.text, length: len.text, check: check.value, renderQueue: rq.value };
+    }
+
+    function reviewRoles(R, layers) {
+        var ROLES = [
+            ["background", "Poster background"], ["person", "Artist photo"],
+            ["border", "Red frame (hidden, it gets drawn)"], ["redBox", "Red half box"],
+            ["location", "Location logo"], ["date.0", "Date 1"], ["date.1", "Date 2"],
+            ["name.0", "Artist name"], ["live", "(LIVE)"], ["subtitle", "Subtitle"],
+            ["top.0", "Top logo 1"], ["top.1", "Top logo 2"], ["top.2", "Top logo 3"],
+            ["bottom.0", "Bottom logo 1"], ["bottom.1", "Bottom logo 2"]
+        ];
+        function get(key) { var k = key.split("."); return k.length > 1 ? (R[k[0]][+k[1]] || null) : R[key]; }
+        var labels = ["(none)"];
+        for (var i = 0; i < layers.length; i++) labels.push(layers[i].index + ". " + layers[i].name);
+        var d = new Window("dialog", "Poster Motion - check the layers");
+        d.orientation = "column"; d.alignChildren = ["fill", "top"];
+        d.add("statictext", undefined, "Fix any wrong picks. (none) skips that part.");
+        var drops = [];
+        for (var r = 0; r < ROLES.length; r++) {
+            var g = d.add("group");
+            g.add("statictext", undefined, ROLES[r][1]).preferredSize.width = 210;
+            var dd = g.add("dropdownlist", undefined, labels); dd.preferredSize.width = 260;
+            var cur = get(ROLES[r][0]), sel = 0;
+            for (var j = 0; j < layers.length; j++) if (cur && layers[j] === cur.layer) sel = j + 1;
+            dd.selection = sel;
+            drops.push(dd);
+        }
+        var bt = d.add("group"); bt.alignment = "right";
+        bt.add("button", undefined, "Cancel", { name: "cancel" });
+        bt.add("button", undefined, "Animate", { name: "ok" });
+        if (d.show() !== 1) return null;
+        var out = { date: [], name: [], top: [], bottom: [] };
+        for (var k = 0; k < ROLES.length; k++) {
+            var s = drops[k].selection ? drops[k].selection.index : 0;
+            var v = s > 0 ? { layer: layers[s - 1] } : null;
+            var key = ROLES[k][0].split(".");
+            if (key.length > 1) { if (v) out[key[0]].push(v); } else out[key[0]] = v;
+        }
+        // Keep any extra name lines the automatic pass found.
+        for (var e = 1; e < R.name.length; e++) out.name.push(R.name[e]);
+        return out;
     }
 
     function parseTime(s) {
@@ -75,36 +165,8 @@
     }
 
     // ---------------- helpers ----------------
-    function lower(s) { return String(s).toLowerCase(); }
-
-    // Every layer in the comp and in nested PSD-group precomps, gathered once.
-    function collect(comp, out, seen) {
-        seen[comp.id] = true;
-        for (var i = 1; i <= comp.numLayers; i++) {
-            var L = comp.layer(i);
-            out.push({ layer: L, comp: comp, name: lower(L.name) });
-            if (L.source instanceof CompItem && !seen[L.source.id]) collect(L.source, out, seen);
-        }
-        return out;
-    }
-    function makeFinder(all) {
-        var used = [];
-        function one(keys) {
-            for (var k = 0; k < keys.length; k++)
-                for (var i = 0; i < all.length; i++)
-                    if (!used[i] && all[i].name.indexOf(keys[k]) >= 0) { used[i] = true; return all[i]; }
-            return null;
-        }
-        function each(keys) {
-            var out = [];
-            for (var k = 0; k < keys.length; k++) { var r = one([keys[k]]); if (r) out.push(r); }
-            return out;
-        }
-        return { one: one, each: each };
-    }
-
     var E = new KeyframeEase(0, 80);
-    // Sets all keyframes in one call (much faster than one call per key), then eases them.
+    // Sets all keyframes in one call, then eases them.
     function keys(prop, times, values) {
         prop.setValuesAtTimes(times, values);
         var vt = prop.propertyValueType;
@@ -127,18 +189,39 @@
         keys(tr(L, "ADBE Scale"), times, out);
     }
 
+    // Layer bounds in comp pixels (no rotation assumed, which is how PSDs import).
+    function boundsOf(L) {
+        var r = L.sourceRectAtTime(0, false);
+        var p = tr(L, "ADBE Position").value, a = tr(L, "ADBE Anchor Point").value, s = tr(L, "ADBE Scale").value;
+        var sx = s[0] / 100, sy = s[1] / 100;
+        var x0 = p[0] + (r.left - a[0]) * sx, y0 = p[1] + (r.top - a[1]) * sy;
+        return { x0: x0, y0: y0, x1: x0 + r.width * sx, y1: y0 + r.height * sy };
+    }
+    function describe(comp) {
+        var items = [], layers = [];
+        for (var i = comp.numLayers; i >= 1; i--) { // bottom to top
+            var L = comp.layer(i);
+            if (!(L instanceof AVLayer) && !(L instanceof TextLayer) && !(L instanceof ShapeLayer)) continue;
+            var it = { layer: L, name: L.name, adjustment: L.adjustmentLayer, kind: (L.hasVideo ? "video" : "audio"),
+                       blend: L.blendingMode === BlendingMode.MULTIPLY ? "multiply" : "" };
+            try { var b = boundsOf(L); it.x0 = b.x0; it.y0 = b.y0; it.x1 = b.x1; it.y1 = b.y1; } catch (e) { continue; }
+            items.push(it);
+        }
+        for (var j = 1; j <= comp.numLayers; j++) layers.push(comp.layer(j));
+        return { items: items, layers: layers };
+    }
+
     // PSD text arrives as pixels; turn it into a text layer so it can roll.
-    function editableText(entry) {
-        var L = entry.layer;
+    function editableText(comp, L) {
         if (L.property("ADBE Text Properties")) return L;
         try {
             var cmd = app.findMenuCommandId("Convert to Editable Text");
             if (!cmd) return null;
-            entry.comp.openInViewer();
-            for (var i = 1; i <= entry.comp.numLayers; i++) entry.comp.layer(i).selected = false;
+            comp.openInViewer();
+            for (var i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;
             L.selected = true;
             app.executeCommand(cmd);
-            var sel = entry.comp.selectedLayers;
+            var sel = comp.selectedLayers;
             return (sel.length && sel[0].property("ADBE Text Properties")) ? sel[0] : null;
         } catch (e) { return null; }
     }
@@ -148,14 +231,14 @@
         var finalText = st.value.text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r/g, "\\r").replace(/\n/g, "\\n");
         st.expression = [
             'var f = "' + finalText + '", t0 = ' + t0 + ', step = ' + step + ', roll = ' + roll + ';',
-            'var abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", dig = "0123456789", out = "", n = 0;',
+            'var up = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", lo = "abcdefghijklmnopqrstuvwxyz", dig = "0123456789", out = "", n = 0;',
             'for (var i = 0; i < f.length; i++) {',
             '  var c = f.charAt(i);',
             '  if (c == " " || c == "\\r" || c == "\\n") { out += c; continue; }',
             '  if (time < t0 + n * step * 0.5) out += " ";',
             '  else if (time >= t0 + roll + n * step) out += c;',
             '  else { seedRandom(i * 7 + Math.floor(time * 15), true);',
-            '    var p = dig.indexOf(c) >= 0 ? dig : (abc.indexOf(c.toUpperCase()) >= 0 ? abc : c);',
+            '    var p = dig.indexOf(c) >= 0 ? dig : up.indexOf(c) >= 0 ? up : lo.indexOf(c) >= 0 ? lo : c;',
             '    out += p.charAt(Math.floor(random(p.length))); }',
             '  n++;',
             '}',
@@ -176,62 +259,42 @@
         return { layer: L, stroke: s, trim: v.property("ADBE Vector Filter - Trim") };
     }
 
-    // Guesses a layer for each part of the poster by name, then lets you correct
-    // the guesses. Returns { role: entry } or null if cancelled.
-    function matchLayers(comp, all) {
-        var F = makeFinder(all), guess = {};
-        // Guess order matters: loose words like "red" and "box" go last.
-        guess.background = F.one(LAYERS.background);
-        guess.person = F.one(LAYERS.person);
-        guess.border = F.one(LAYERS.border);
-        guess.location = F.one(LAYERS.location);
-        guess.date = F.one(LAYERS.date);
-        guess.name1 = F.one(LAYERS.name);
-        guess.name2 = guess.name1 ? F.one(LAYERS.name) : null;
-        guess.live = F.one(LAYERS.live);
-        guess.subtitle = F.one(LAYERS.subtitle);
-        var tops = F.each(LAYERS.topLogos), bots = F.each(LAYERS.bottomLogos);
-        for (var i = 0; i < 3; i++) guess["top" + (i + 1)] = tops[i] || null;
-        for (var j = 0; j < 2; j++) guess["bottom" + (j + 1)] = bots[j] || null;
-        guess.redBox = F.one(LAYERS.redBox);
-
-        var ROLES = [
-            ["background", "Poster background"], ["person", "Person / photo"],
-            ["border", "Red frame (hidden, it gets drawn)"], ["redBox", "Red diagonal box"],
-            ["location", "Location logo"], ["date", "Date"],
-            ["name1", "Artist name (line 1)"], ["name2", "Artist name (line 2)"],
-            ["live", "(LIVE)"], ["subtitle", "Subtitle"],
-            ["top1", "Top logo 1"], ["top2", "Top logo 2"], ["top3", "Top logo 3"],
-            ["bottom1", "Bottom logo 1"], ["bottom2", "Bottom logo 2"]
-        ];
-        var labels = ["(none)"];
-        for (var a = 0; a < all.length; a++)
-            labels.push((all[a].comp === comp ? "" : all[a].comp.name + "  >  ") + all[a].layer.name);
-        function indexOf(entry) { for (var b = 0; b < all.length; b++) if (all[b] === entry) return b + 1; return 0; }
-
-        var d = new Window("dialog", "Poster Motion - check the layers");
-        d.orientation = "column"; d.alignChildren = ["fill", "top"];
-        d.add("statictext", undefined, "These are the layers the script guessed. Fix any that are wrong. Anything set to (none) is skipped.", { multiline: true }).preferredSize.width = 460;
-        var drops = {};
-        for (var r = 0; r < ROLES.length; r++) {
-            var g = d.add("group");
-            g.add("statictext", undefined, ROLES[r][1]).preferredSize.width = 200;
-            var dd = g.add("dropdownlist", undefined, labels);
-            dd.preferredSize.width = 250;
-            dd.selection = indexOf(guess[ROLES[r][0]]);
-            drops[ROLES[r][0]] = dd;
-        }
-        var bt = d.add("group"); bt.alignment = "right";
-        bt.add("button", undefined, "Cancel", { name: "cancel" });
-        bt.add("button", undefined, "Animate", { name: "ok" });
-        if (d.show() !== 1) return null;
-
-        var out = {};
-        for (var key in drops) {
-            var sel = drops[key].selection ? drops[key].selection.index : 0;
-            out[key] = sel > 0 ? all[sel - 1] : null;
-        }
-        return out;
+    // ---- the diagonal edge of the red box: y = H*(1489 - 0.792*x*1080/W)/1920 ----
+    function diagY(x, W, H) { return H * (1489 - 0.792 * x * 1080 / W) / 1920; }
+    function toLayer(L, pt) {
+        var p = tr(L, "ADBE Position").value, a = tr(L, "ADBE Anchor Point").value, s = tr(L, "ADBE Scale").value;
+        return [(pt[0] - p[0]) / (s[0] / 100) + a[0], (pt[1] - p[1]) / (s[1] / 100) + a[1]];
+    }
+    function polyShape(L, pts) {
+        var sh = new Shape(), v = [];
+        for (var i = 0; i < pts.length; i++) v.push(toLayer(L, pts[i]));
+        sh.vertices = v; sh.closed = true;
+        return sh;
+    }
+    function addMask(L, name, mode) {
+        var masks = L.property("ADBE Mask Parade");
+        var m = masks.addProperty("ADBE Mask Atom");
+        m.name = name; m.maskMode = mode;
+        return m.propertyIndex;
+    }
+    // Area below the diagonal, pushed down by `off` pixels (off = H hides it all).
+    function belowDiagonal(L, W, H, off) {
+        var m = 60;
+        return polyShape(L, [[-m, diagY(-m, W, H) + off], [W + m, diagY(W + m, W, H) + off], [W + m, H * 3], [-m, H * 3]]);
+    }
+    function aboveDiagonal(L, W, H) {
+        var m = 60;
+        return polyShape(L, [[-m, -m], [W + m, -m], [W + m, diagY(W + m, W, H)], [-m, diagY(-m, W, H)]]);
+    }
+    // Sweeps the area below the diagonal in from the bottom-right corner.
+    function diagonalWipe(L, W, H, t0, t1, keepTop) {
+        var masks = L.property("ADBE Mask Parade");
+        var had = masks.numProperties;
+        if (keepTop) masks.property(addMask(L, "Top half", MaskMode.ADD)).property("ADBE Mask Shape").setValue(aboveDiagonal(L, W, H));
+        // Photo: top half OR swept area. Red box: its own PSD mask AND the swept area.
+        var idx = addMask(L, "Diagonal wipe", (had && !keepTop) ? MaskMode.INTERSECT : MaskMode.ADD);
+        var path = L.property("ADBE Mask Parade").property(idx).property("ADBE Mask Shape");
+        keys(path, [t0, t1], [belowDiagonal(L, W, H, H), belowDiagonal(L, W, H, 0)]);
     }
 
     // ---------------- main ----------------
@@ -239,84 +302,79 @@
         var W = comp.width, H = comp.height;
         var total = Math.max(ANIM_END, parseFloat(opts.length) || 0);
         comp.duration = total;
-        // The PSD's groups become precomps; stretch them and every layer to the full length.
-        var all = collect(comp, [], {});
-        for (var i = 0; i < all.length; i++) {
-            var src = all[i].layer.source;
-            if (src instanceof CompItem && src.duration < total) src.duration = total;
-            if (all[i].layer.outPoint < total) all[i].layer.outPoint = total;
+        for (var i = 1; i <= comp.numLayers; i++) if (comp.layer(i).outPoint < total) comp.layer(i).outPoint = total;
+
+        step = "recognising layers";
+        var info = describe(comp);
+        var R = classifyPosterLayers(info.items, W, H);
+        if (opts.check) { R = reviewRoles(R, info.layers); if (!R) throw new Error("Cancelled."); }
+        function L(e) { return e ? e.layer : null; }
+        function needOne(e, label) { if (!e) missing.push(label); return L(e); }
+        function needAll(list, label) { if (!list.length) missing.push(label); var o = []; for (var k = 0; k < list.length; k++) o.push(list[k].layer); return o; }
+        var bg = L(R.background), person = needOne(R.person, "artist photo"), border = L(R.border);
+        var redBox = needOne(R.redBox, "red half box"), loc = needOne(R.location, "location logo");
+        var dates = needAll(R.date, "date"), names = needAll(R.name, "artist name");
+        var live = L(R.live), sub = L(R.subtitle);
+        var top = needAll(R.top, "top logos"), bottom = needAll(R.bottom, "bottom logos");
+
+        // 1. Black, then the artist photo (only its top half until the red box arrives).
+        step = "black background and photo";
+        comp.layers.addSolid([0, 0, 0], "Black BG", W, H, comp.pixelAspect, total).moveToEnd();
+        if (bg) fadeIn(bg, 0.4, 1.5);
+        if (person) {
+            // The PSD's gradient map may not survive import; Tint keeps the photo black and white either way.
+            person.property("ADBE Effect Parade").addProperty("ADBE Tint");
+            diagonalWipe(person, W, H, 2.75, 3.55, true);
+            fadeIn(person, 0.4, 1.5);
+            scaleKeys(person, [0.4, 2.4, total], [110, 100, 100 + 2.5 * total / ANIM_END]);
         }
 
-        // Find every poster layer before adding any (adding layers renumbers them).
-        var R = matchLayers(comp, all);
-        if (!R) throw new Error("Cancelled.");
-        function need(key, label) { if (!R[key]) missing.push(label); return R[key] ? R[key].layer : null; }
-        function list(prefix, n) { var out = []; for (var k = 1; k <= n; k++) if (R[prefix + k]) out.push(R[prefix + k]); return out; }
-        var bg = R.background, person = need("person", "person / photo"), border = R.border;
-        var loc = need("location", "location logo"), date = need("date", "date");
-        var names = list("name", 2);
-        if (!names.length) missing.push("artist name");
-        var live = R.live, sub = R.subtitle;
-        var top = list("top", 3), bottom = list("bottom", 2);
-        if (!top.length) missing.push("top logos");
-        if (!bottom.length) missing.push("bottom logos");
-        var redBox = need("redBox", "red diagonal box");
-
-        // 1. Black background, then the poster's own background and the person.
-        step = "black background and person";
-        comp.layers.addSolid([0, 0, 0], "Black BG", W, H, comp.pixelAspect, total).moveToEnd();
-        if (bg) fadeIn(bg.layer, 0.4, 1.5);
-        if (person) { fadeIn(person, 0.4, 1.5); scaleKeys(person, [0.4, 2.4, total], [110, 100, 100 + 2.5 * total / ANIM_END]); }
-
-        // 2. Red frame: thin line draws around, then thickens.
-        step = "red frame stroke";
+        // 2. Red frame: hidden at first, a thin line draws around, then thickens.
+        step = "red frame";
         var fw = Math.round(W * 22 / 1080);
-        if (border) border.layer.enabled = false;
+        if (border) border.enabled = false;
         var fr = strokeShape(comp, "Frame Stroke", function (v) {
             v.addProperty("ADBE Vector Shape - Rect").property("ADBE Vector Rect Size").setValue([W - fw, H - fw]);
         }, RED, 4);
         keys(fr.trim.property("ADBE Vector Trim Start"), [1.2, 2.4], [50, 0]);
         keys(fr.trim.property("ADBE Vector Trim End"), [1.2, 2.4], [50, 100]);
         keys(fr.stroke.property("ADBE Vector Stroke Width"), [2.3, 2.8], [4, fw]);
-        fr.layer.inPoint = 1.2; // nothing on screen until the line starts drawing
+        fr.layer.inPoint = 1.2;
 
-        // 3. Diagonal line draws, then the red box wipes in.
+        // 3. Diagonal line draws, then the red half box sweeps in up to it.
         step = "diagonal line and red box";
-        var ya = H * 1489 / 1920, yb = H * (1489 - 0.792 * 1080) / 1920;
         var dl = strokeShape(comp, "Diagonal Line", function (v) {
-            var sh = new Shape(); sh.vertices = [[-W / 2, ya - H / 2], [W / 2, yb - H / 2]]; sh.closed = false;
+            var sh = new Shape();
+            sh.vertices = [[-W / 2, diagY(0, W, H) - H / 2], [W / 2, diagY(W, W, H) - H / 2]];
+            sh.closed = false;
             v.addProperty("ADBE Vector Shape - Group").property("ADBE Vector Shape").setValue(sh);
         }, [225 / 255, 20 / 255, 26 / 255], Math.max(2, Math.round(W * 4 / 1080)));
         keys(dl.trim.property("ADBE Vector Trim End"), [2.3, 2.95], [0, 100]);
         keys(tr(dl.layer, "ADBE Opacity"), [3.4, 3.8], [100, 0]);
         dl.layer.inPoint = 2.3;
-        if (redBox) {
-            var wipe = redBox.property("ADBE Effect Parade").addProperty("ADBE Linear Wipe");
-            wipe.property("ADBE Linear Wipe-0002").setValue(180 + Math.atan(0.792) * 180 / Math.PI);
-            keys(wipe.property("ADBE Linear Wipe-0001"), [2.75, 3.55], [100, 0]);
-        }
+        if (redBox) diagonalWipe(redBox, W, H, 2.75, 3.55, false);
 
         // 4. Location rises, date pops.
         step = "location and date";
         if (loc) { fadeIn(loc, 3.4, 3.8); slide(loc, 3.4, 4.1, H * 0.035); }
-        if (date) { fadeIn(date, 3.8, 4.05); scaleKeys(date, [3.8, 4.15, 4.35], [50, 108, 100]); }
+        for (var d = 0; d < dates.length; d++) { fadeIn(dates[d], 3.8, 4.05); scaleKeys(dates[d], [3.8, 4.15, 4.35], [50, 108, 100]); }
 
         // 5. Top logos drop in while the bottom logos rise in.
         step = "logos";
-        for (var t = 0; t < top.length; t++) { var a = 4.3 + t * 0.12; fadeIn(top[t].layer, a, a + 0.6); slide(top[t].layer, a, a + 0.6, -H * 0.016); }
-        for (var b = 0; b < bottom.length; b++) { var c = 4.4 + b * 0.12; fadeIn(bottom[b].layer, c, c + 0.6); slide(bottom[b].layer, c, c + 0.6, H * 0.016); }
+        for (var t = 0; t < top.length; t++) { var a = 4.3 + t * 0.12; fadeIn(top[t], a, a + 0.6); slide(top[t], a, a + 0.6, -H * 0.016); }
+        for (var b = 0; b < bottom.length; b++) { var c = 4.4 + b * 0.12; fadeIn(bottom[b], c, c + 0.6); slide(bottom[b], c, c + 0.6, H * 0.016); }
 
         // 6. Last: artist name, (LIVE) and subtitle roll in.
         step = "artist name roll";
-        function textIn(entry, label, t0, step, roll) {
-            if (!entry) { missing.push(label); return; }
-            var T = editableText(entry);
-            if (T) rollText(T, t0, step, roll);
-            else { fadeIn(entry.layer, t0, t0 + 0.4); slide(entry.layer, t0, t0 + 0.6, H * 0.03); }
+        function textIn(layer, t0, stp, roll) {
+            if (!layer) return;
+            var T = editableText(comp, layer);
+            if (T) rollText(T, t0, stp, roll);
+            else { fadeIn(layer, t0, t0 + 0.4); slide(layer, t0, t0 + 0.6, H * 0.03); }
         }
-        for (var j = 0; j < names.length; j++) textIn(names[j], "artist name", 5.1 + j * 0.25, 0.07, 0.55);
-        textIn(live, "(LIVE)", 6.25, 0.08, 0.3);
-        textIn(sub, "subtitle (Halloween Weekend)", 6.1, 0.04, 0.3);
+        for (var j = 0; j < names.length; j++) textIn(names[j], 5.1 + j * 0.25, 0.07, 0.55);
+        textIn(live, 6.25, 0.08, 0.3);
+        textIn(sub, 6.1, 0.04, 0.3);
         return total;
     }
 
@@ -328,7 +386,7 @@
         if (startAt >= item.duration) throw new Error("The start time is past the end of the song (" + Math.floor(item.duration) + " s).");
         var L = comp.layers.add(item);
         L.name = "Song";
-        L.startTime = -startAt;          // the chosen moment in the song plays at 0:00
+        L.startTime = -startAt; // the chosen moment in the song plays at 0:00
         L.inPoint = 0;
         L.outPoint = Math.min(total, item.duration - startAt);
         var end = L.outPoint, fade = Math.min(1.5, end / 3);
@@ -341,7 +399,7 @@
         var f = new File(path);
         if (!f.exists) throw new Error("PSD not found:\n" + path);
         var io = new ImportOptions(f);
-        // "Composition - Retain Layer Sizes" keeps each layer's own bounds and anchor point.
+        // "Composition - Retain Layer Sizes" keeps each layer's own bounds.
         if (io.canImportAs(ImportAsType.COMP_CROPPED_LAYERS)) io.importAs = ImportAsType.COMP_CROPPED_LAYERS;
         else if (io.canImportAs(ImportAsType.COMP)) io.importAs = ImportAsType.COMP;
         var item = app.project.importFile(io);
@@ -354,13 +412,13 @@
     var startAt = parseTime(opts.start);
     if (isNaN(startAt) || startAt < 0) { alert("Couldn't read the start time \"" + opts.start + "\". Use m:ss (1:23.5) or seconds (83.5)."); return; }
 
-    var missing = [], failed = null, step = "importing the PSD";
+    var missing = [], failed = null;
     app.beginUndoGroup("Poster Motion");
     try {
+        step = "importing the PSD";
         var comp = opts.psd ? importPoster(opts.psd) : app.project.activeItem;
         if (!(comp instanceof CompItem)) throw new Error("Pick a PSD, or open the poster's composition before running the script.");
         if (opts.psd) comp.name = File(opts.psd).displayName.replace(/\.[^.]+$/, "") + " - Motion";
-        step = "finding layers";
         var total = animate(comp, opts, missing);
         step = "adding the song";
         if (opts.song) addSong(comp, opts.song, startAt, total);
@@ -375,7 +433,7 @@
     if (failed && failed.message === "Cancelled.") { alert("Cancelled. Edit > Undo removes the imported PSD."); return; }
     if (failed) { alert("Poster Motion stopped while " + step + ":\n" + failed.message + (failed.line ? " (script line " + failed.line + ")" : "") + "\n\nEdit > Undo removes anything it added."); return; }
     var msg = "Done. Press the spacebar to preview." + (opts.renderQueue ? "\nThe comp is in the Render Queue." : "");
-    if (missing.length) msg += "\n\nCouldn't find layers for:\n - " + missing.join("\n - ") +
-        "\n\nRename them (see LAYERS at the top of the script), Edit > Undo, and run it again.";
+    if (missing.length) msg += "\n\nCouldn't recognise: " + missing.join(", ") +
+        ".\nEdit > Undo, run it again and tick \"Let me check which layer is which\".";
     alert(msg);
 })();
