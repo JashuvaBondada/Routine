@@ -1,0 +1,46 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node: \"Filter Incoming\"   (Mode: Run Once for All Items)\n// Put this right after the chat trigger, before the AI node.\n// Lets a message through only if Michael should answer it, and adds:\n//   chatId, sender, senderName, text, isGroup, allowGreeting\n// Returns nothing (workflow stops) when Michael should stay quiet.\n\n// ====== EDIT THESE ======\nconst MY_NUMBER = '919999999999';          // your WhatsApp number, digits only\nconst MY_NAMES = ['michael'];              // names people use to tag you (lowercase)\nconst WORK_KEYWORDS = [                    // words that mean \"this is about our work\"\n  'project', 'deadline', 'client', 'task', 'update', 'report', 'meeting', 'invoice',\n];\nconst TIMEZONE = 'Asia/Kolkata';\n// ========================\n\nconst store = $getWorkflowStaticData('global');\nstore.seenIds = store.seenIds || [];\nstore.lastGreet = store.lastGreet || {};\n\nconst today = new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE });\nconst out = [];\n\nfor (const item of $input.all()) {\n  const m = normalize(item.json);\n  if (!m || !m.text) continue;                    // no text (sticker, status, etc.)\n  if (m.fromMe) continue;                         // never answer our own messages\n\n  // 1. Same message delivered twice (webhook retry) -> answer only once\n  if (m.id) {\n    if (store.seenIds.includes(m.id)) continue;\n    store.seenIds.push(m.id);\n    if (store.seenIds.length > 500) store.seenIds.splice(0, store.seenIds.length - 500);\n  }\n\n  // 2. Groups: answer only if tagged, replied to, or it's about our work\n  if (m.isGroup) {\n    const lower = m.text.toLowerCase();\n    const tagged =\n      m.mentions.some(j => j.replace(/\\D/g, '').startsWith(MY_NUMBER)) ||\n      lower.includes('@' + MY_NUMBER) ||\n      MY_NAMES.some(n => new RegExp(`(^|\\\\W)@?${n}(\\\\W|$)`).test(lower));\n    const repliedToMe = m.quotedParticipant &&\n      m.quotedParticipant.replace(/\\D/g, '').startsWith(MY_NUMBER);\n    const aboutWork = WORK_KEYWORDS.some(k => new RegExp(`\\\\b${k}`).test(lower));\n    if (!tagged && !repliedToMe && !aboutWork) continue;\n  }\n\n  // 3. Greet only on the first message of the day from this person in this chat\n  const key = `${m.chatId}|${m.sender}`;\n  const allowGreeting = store.lastGreet[key] !== today;\n  store.lastGreet[key] = today;\n\n  out.push({ json: { ...item.json, chatId: m.chatId, sender: m.sender,\n    senderName: m.senderName, text: m.text, isGroup: m.isGroup, allowGreeting } });\n}\n\nreturn out;\n\n// Reads the common WhatsApp payload shapes (Evolution API / Baileys, WhatsApp Cloud API).\nfunction normalize(j) {\n  const d = j.body?.data || j.data || j;\n  if (d.key && d.message !== undefined) {             // Evolution API / Baileys\n    const msg = d.message || {};\n    const ext = msg.extendedTextMessage || {};\n    const ctx = ext.contextInfo || {};\n    const chatId = d.key.remoteJid || '';\n    return {\n      id: d.key.id, fromMe: !!d.key.fromMe, chatId,\n      isGroup: chatId.endsWith('@g.us'),\n      sender: d.key.participant || chatId,\n      senderName: d.pushName || '',\n      text: msg.conversation || ext.text || msg.imageMessage?.caption || '',\n      mentions: ctx.mentionedJid || [],\n      quotedParticipant: ctx.participant || '',\n    };\n  }\n  const v = j.body?.entry?.[0]?.changes?.[0]?.value || j.entry?.[0]?.changes?.[0]?.value;\n  if (v?.messages?.[0]) {                              // WhatsApp Cloud API (no groups)\n    const msg = v.messages[0];\n    return {\n      id: msg.id, fromMe: false, chatId: msg.from, isGroup: false,\n      sender: msg.from, senderName: v.contacts?.[0]?.profile?.name || '',\n      text: msg.text?.body || '', mentions: [], quotedParticipant: '',\n    };\n  }\n  return null;\n}\n"
+      },
+      "name": "Filter Incoming",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a1f0c2d4-0001-4b6e-9a11-111111111111"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node: \"Reply Guard\"   (Mode: Run Once for All Items)\n// Put this between the AI node and the Send node.\n// Drops the reply if the AI said SKIP or if it repeats something already sent in this chat.\n\nconst SIMILARITY_LIMIT = 0.8;    // 80% the same words = treated as a repeat\nconst REMEMBER = 20;             // replies remembered per chat\n\nconst store = $getWorkflowStaticData('global');\nstore.sent = store.sent || {};\n\nconst incoming = $('Filter Incoming').all();\nconst out = [];\n\n$input.all().forEach((item, i) => {\n  const reply = String(item.json.output ?? item.json.text ?? item.json.message?.content ?? '').trim();\n  const chatId = incoming[i]?.json.chatId ?? incoming[0]?.json.chatId;\n  if (!reply || /^skip\\.?$/i.test(reply)) return;\n\n  const clean = s => s.toLowerCase().replace(/[^\\p{L}\\p{N}\\s]/gu, '').replace(/\\s+/g, ' ').trim();\n  const now = clean(reply);\n  const history = store.sent[chatId] || [];\n  if (history.some(old => old === now || similarity(old, now) >= SIMILARITY_LIMIT)) return;\n\n  history.push(now);\n  store.sent[chatId] = history.slice(-REMEMBER);\n  out.push({ json: { ...item.json, chatId, reply } });\n});\n\nreturn out;\n\n// Word-overlap similarity (0..1)\nfunction similarity(a, b) {\n  const A = new Set(a.split(' ')), B = new Set(b.split(' '));\n  const same = [...A].filter(w => B.has(w)).length;\n  return same / Math.max(A.size, B.size, 1);\n}\n"
+      },
+      "name": "Reply Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ],
+      "id": "a1f0c2d4-0002-4b6e-9a11-222222222222"
+    },
+    {
+      "parameters": {
+        "content": "## Michael fix\n1. Trigger → **Filter Incoming** → AI Agent → **Reply Guard** → Send\n2. In Filter Incoming, set MY_NUMBER at the top\n3. AI Agent system prompt:\n\nYou are Michael, replying in a WhatsApp chat on behalf of the user. Text like a real person, not a bot.\n\nGreeting allowed right now: {{ $('Filter Incoming').item.json.allowGreeting }}\nChat type: {{ $('Filter Incoming').item.json.isGroup ? 'group' : 'private' }}\nSender: {{ $('Filter Incoming').item.json.senderName }}\n\nRules:\n- If greeting allowed is true, you may open with a short greeting (\"Good morning!\"). If it is false, do NOT greet and do NOT open with the person's name — just answer.\n- Reply to what the message actually says. Keep it short, casual and natural, like a normal chat (1–2 lines usually).\n- Never repeat something you've already said in this conversation. Don't restate the same info twice.\n- Don't use the person's name in every message.\n- In a group, only talk about what you were asked or what concerns our work. Don't jump into side chatter.\n- If the message needs no reply (e.g. \"ok\", \"👍\", \"thanks\", chatter not meant for you), reply with exactly: SKIP\n\n4. Send node text: {{ $json.reply }}",
+        "height": 620,
+        "width": 460
+      },
+      "name": "Michael setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -700
+      ],
+      "id": "a1f0c2d4-0003-4b6e-9a11-333333333333"
+    }
+  ],
+  "connections": {}
+}
